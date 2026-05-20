@@ -231,16 +231,13 @@ export default function NuevoPacientePage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 px-6 py-3 bg-morena text-white rounded-lg 
-                         hover:bg-morena/90 transition-all shadow-lg
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary"
               >
                 {isLoading ? 'Guardando...' : 'Guardar Paciente'}
               </button>
               <Link
                 href="/pacientes"
-                className="flex-1 px-6 py-3 border-2 border-piel text-morena rounded-lg 
-                         hover:bg-piel/10 transition-all text-center"
+                className="btn-secondary"
               >
                 Cancelar
               </Link>

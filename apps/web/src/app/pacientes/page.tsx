@@ -78,8 +78,7 @@ export default function PacientesPage() {
             </div>
             <Link
               href="/pacientes/nuevo"
-              className="px-6 py-3 bg-morena text-white rounded-lg 
-                       hover:bg-morena/90 transition-all shadow-lg"
+              className="btn-primary"
             >
               Nuevo Paciente
             </Link>

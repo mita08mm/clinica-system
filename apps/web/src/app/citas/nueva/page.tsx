@@ -252,16 +252,13 @@ export default function NuevaCitaPage() {
               <button
                 type="submit"
                 disabled={isLoading || pacientes.length === 0}
-                className="flex-1 px-6 py-3 bg-morena text-white rounded-lg 
-                         hover:bg-morena/90 transition-all shadow-lg
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary"
               >
                 {isLoading ? 'Guardando...' : 'Agendar Cita'}
               </button>
               <Link
                 href="/citas"
-                className="flex-1 px-6 py-3 border-2 border-piel text-morena rounded-lg 
-                         hover:bg-piel/10 transition-all text-center"
+                className="btn-secondary"
               >
                 Cancelar
               </Link>

@@ -121,8 +121,7 @@ export default function CitasPage() {
             </div>
             <Link
               href="/citas/nueva"
-              className="px-6 py-3 bg-morena text-white rounded-lg 
-                       hover:bg-morena/90 transition-all shadow-lg"
+              className="btn-primary"
             >
               Nueva Cita
             </Link>

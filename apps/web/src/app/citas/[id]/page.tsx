@@ -404,9 +404,7 @@ export default function CitaDetailPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-morena text-white rounded-lg 
-                           hover:bg-morena/90 transition-all shadow-lg
-                           disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary"
                 >
                   {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
@@ -424,8 +422,7 @@ export default function CitaDetailPage() {
                       notas: cita.notas || '',
                     });
                   }}
-                  className="flex-1 px-6 py-3 border-2 border-piel text-morena rounded-lg 
-                           hover:bg-piel/10 transition-all"
+                  className="btn-secondary"
                 >
                   Cancelar
                 </button>

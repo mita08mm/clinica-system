@@ -118,7 +118,7 @@ export default function RecetasPage() {
             </div>
             <Link
               href="/recetas/nuevo"
-              className="px-6 py-3 bg-morena text-white rounded-lg hover:bg-morena/90 transition-all shadow-lg"
+              className="btn-primary"
             >
               Nueva Receta
             </Link>
@@ -137,7 +137,7 @@ export default function RecetasPage() {
               </p>
               <Link
                 href="/recetas/nuevo"
-                className="inline-block px-6 py-3 bg-morena text-white rounded-lg hover:bg-morena/90 transition-all"
+                className="btn-primary"
               >
                 Crear primera receta
               </Link>

@@ -449,9 +449,7 @@ export default function CobroDetailPage() {
                   <button
                     type="submit"
                     disabled={procesandoPago}
-                    className="w-full px-6 py-3 bg-morena text-white rounded-lg 
-                             hover:bg-morena/90 transition-all shadow-lg
-                             disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-primary"
                   >
                     {procesandoPago ? 'Procesando...' : 'Confirmar Pago'}
                   </button>

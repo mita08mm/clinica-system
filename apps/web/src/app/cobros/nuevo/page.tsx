@@ -375,16 +375,13 @@ export default function NuevoCobroPage() {
               <button
                 type="submit"
                 disabled={isLoading || items.length === 0}
-                className="flex-1 px-6 py-3 bg-morena text-white rounded-lg 
-                         hover:bg-morena/90 transition-all shadow-lg
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary"
               >
                 {isLoading ? 'Guardando...' : 'Guardar Cobro'}
               </button>
               <Link
                 href="/cobros"
-                className="flex-1 px-6 py-3 border-2 border-piel text-morena rounded-lg 
-                         hover:bg-piel/10 transition-all text-center"
+                className="btn-secondary"
               >
                 Cancelar
               </Link>
