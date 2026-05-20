@@ -256,7 +256,7 @@ export default function CitaDetailPage() {
           )}
 
           {/* Información del paciente */}
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="text-xl font-heading font-bold text-concreto mb-4">
               Paciente
             </h2>
@@ -287,7 +287,7 @@ export default function CitaDetailPage() {
 
           {/* Información de la cita */}
           {isEditMode ? (
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-8 space-y-6">
               <h2 className="text-xl font-heading font-bold text-concreto mb-4">
                 Editar Cita
               </h2>
@@ -429,7 +429,7 @@ export default function CitaDetailPage() {
               </div>
             </form>
           ) : (
-            <div className="bg-white rounded-xl shadow-md p-8 space-y-6">
+            <div className="bg-white rounded-xl shadow-sm p-8 space-y-6">
               <h2 className="text-xl font-heading font-bold text-concreto mb-4">
                 Detalles de la Cita
               </h2>

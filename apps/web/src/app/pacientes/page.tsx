@@ -91,12 +91,12 @@ export default function PacientesPage() {
           )}
 
           {isLoading ? (
-            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
               <div className="w-16 h-16 border-4 border-piel border-t-morena rounded-full animate-spin mx-auto"></div>
               <p className="text-marengo mt-4">Cargando pacientes...</p>
             </div>
           ) : pacientes.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
               <p className="text-marengo">No hay pacientes registrados</p>
               <Link
                 href="/pacientes/nuevo"
@@ -107,7 +107,7 @@ export default function PacientesPage() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>

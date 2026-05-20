@@ -128,7 +128,7 @@ export default function CitasPage() {
           </div>
 
           {citas.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <div className="text-6xl mb-4">📅</div>
               <h3 className="text-xl font-heading font-semibold text-concreto mb-2">
                 No hay citas programadas
@@ -145,7 +145,7 @@ export default function CitasPage() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <table className="min-w-full divide-y divide-marengo/20">
                 <thead className="bg-piel/20">
                   <tr>

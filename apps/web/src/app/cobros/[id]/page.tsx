@@ -260,7 +260,7 @@ export default function CobroDetailPage() {
           )}
 
           {/* Información del paciente */}
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="text-xl font-heading font-bold text-concreto mb-4">
               Paciente
             </h2>
@@ -281,7 +281,7 @@ export default function CobroDetailPage() {
           </div>
 
           {/* Items del cobro */}
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="text-xl font-heading font-bold text-concreto mb-4">
               Items del Cobro
             </h2>
@@ -341,7 +341,7 @@ export default function CobroDetailPage() {
           </div>
 
           {/* Historial de pagos */}
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-xl shadow-sm p-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-heading font-bold text-concreto">
                 Historial de Pagos

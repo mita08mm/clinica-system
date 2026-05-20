@@ -17,7 +17,7 @@ export default function InventarioPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
             <p className="text-marengo">
               Modulo de inventario en desarrollo...
             </p>

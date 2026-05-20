@@ -198,7 +198,7 @@ export default function PacienteDetailPage() {
           )}
 
           {isEditMode ? (
-            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-concreto">
@@ -370,7 +370,7 @@ export default function PacienteDetailPage() {
               </div>
             </form>
           ) : (
-            <div className="bg-white rounded-xl shadow-md p-8 space-y-6">
+            <div className="bg-white rounded-xl shadow-sm p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm text-marengo font-medium mb-1">Nombre Completo</p>
@@ -439,7 +439,7 @@ export default function PacienteDetailPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-md p-8">
+          <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="text-xl font-heading font-bold text-concreto mb-4">
               Historia Clinica
             </h2>

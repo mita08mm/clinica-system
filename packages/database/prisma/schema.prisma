@@ -325,22 +325,24 @@ model Receta {
 }
 
 model ItemReceta {
-  id          String           @id @default(uuid())
-  recetaId    String
-  tipo        TipoItemReceta
-  itemId      String
-  nombre      String
-  cantidad    Int
-  dosis       String?
-  frecuencia  String?
-  duracion    String?
-  estado      EstadoItemReceta @default(PRESCRITO)
-  precio      Decimal?         @db.Decimal(10, 2)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  receta      Receta           @relation(fields: [recetaId], references: [id], onDelete: Cascade)
-  medicamento Medicamento?     @relation(fields: [itemId], references: [id], map: "ItemReceta_medicamento_fkey")
-  insumo      Insumo?          @relation(fields: [itemId], references: [id], map: "ItemReceta_insumo_fkey")
+  id           String           @id @default(uuid())
+  recetaId     String
+  tipo         TipoItemReceta
+  itemId       String
+  nombre       String
+  cantidad     Int
+  dosis        String?
+  frecuencia   String?
+  duracion     String?
+  estado       EstadoItemReceta @default(PRESCRITO)
+  precio       Decimal?         @db.Decimal(10, 2)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  receta       Receta           @relation(fields: [recetaId], references: [id], onDelete: Cascade)
+  medicamentoId String?
+  insumoId      String?
+  medicamento  Medicamento?     @relation(fields: [medicamentoId], references: [id])
+  insumo       Insumo?          @relation(fields: [insumoId], references: [id])
 
   @@index([recetaId])
   @@index([estado])

@@ -2,7 +2,7 @@ import { PrismaClient, EstadoCobro, TipoItemCobro, MetodoPago } from '@clinica/d
 
 export interface CreateItemCobroInput {
   tipo: TipoItemCobro;
-  itemId: string;
+  itemId?: string;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -52,7 +52,7 @@ export class CobroRepository {
         items: {
           create: items.map(item => ({
             tipo: item.tipo,
-            itemId: item.itemId,
+            itemId: item.itemId ?? crypto.randomUUID(),
             nombre: item.nombre,
             cantidad: item.cantidad,
             precioUnitario: item.precioUnitario,

@@ -131,7 +131,7 @@ export default function RecetasPage() {
           )}
 
           {recetas.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
               <p className="text-marengo mb-4">
                 No hay recetas registradas
               </p>
@@ -143,7 +143,7 @@ export default function RecetasPage() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <table className="min-w-full divide-y divide-marengo/20">
                 <thead className="bg-marengo/10">
                   <tr>

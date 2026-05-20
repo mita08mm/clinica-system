@@ -80,7 +80,12 @@ export default function NuevoCobroPage() {
       return;
     }
 
-    setItems([...items, { ...nuevoItem, itemId: `temp-${Date.now()}` }]);
+    const item = { ...nuevoItem };
+    if (item.tipo === 'SERVICIO') {
+      item.itemId = crypto.randomUUID();
+    }
+
+    setItems([...items, item]);
     setNuevoItem({
       tipo: 'SERVICIO',
       itemId: '',
@@ -131,6 +136,7 @@ export default function NuevoCobroPage() {
 
       if (!response.ok) {
         const data = await response.json();
+        console.log('ERROR COBRO:', JSON.stringify(data, null, 2));
         throw new Error(data.error || 'Error al crear cobro');
       }
 
@@ -175,7 +181,7 @@ export default function NuevoCobroPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Selección de paciente */}
-            <div className="bg-white rounded-xl shadow-md p-8">
+            <div className="bg-white rounded-xl shadow-sm p-8">
               <h2 className="text-xl font-heading font-bold text-concreto mb-4">
                 Paciente
               </h2>
@@ -202,7 +208,7 @@ export default function NuevoCobroPage() {
             </div>
 
             {/* Items del cobro */}
-            <div className="bg-white rounded-xl shadow-md p-8">
+            <div className="bg-white rounded-xl shadow-sm p-8">
               <h2 className="text-xl font-heading font-bold text-concreto mb-4">
                 Items del Cobro
               </h2>
@@ -268,8 +274,7 @@ export default function NuevoCobroPage() {
                   <button
                     type="button"
                     onClick={agregarItem}
-                    className="w-full px-4 py-2 bg-morena text-white text-sm rounded 
-                             hover:bg-morena/90 transition-all"
+                    className="btn-primary w-full"
                   >
                     Agregar
                   </button>
@@ -324,7 +329,7 @@ export default function NuevoCobroPage() {
             </div>
 
             {/* Resumen y totales */}
-            <div className="bg-white rounded-xl shadow-md p-8">
+            <div className="bg-white rounded-xl shadow-sm p-8">
               <h2 className="text-xl font-heading font-bold text-concreto mb-4">
                 Totales
               </h2>

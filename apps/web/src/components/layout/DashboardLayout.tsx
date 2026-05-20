@@ -21,7 +21,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FBF9F8]">
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
@@ -42,12 +42,12 @@ export default function DashboardLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-morena text-white'
+                    ? 'bg-[#FEF4E4] text-[#5A350F] border-l-4 border-[#5A350F]'
                     : 'text-marengo hover:bg-piel/10 hover:text-morena'
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
+                <span className="text-lg">{item.icon}</span>
+                <span className="font-heading text-lg">{item.label}</span>
               </Link>
             );
           })}

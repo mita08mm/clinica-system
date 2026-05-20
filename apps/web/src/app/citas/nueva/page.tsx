@@ -123,7 +123,7 @@ export default function NuevaCitaPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-8 space-y-6">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-concreto">
                 Paciente *
