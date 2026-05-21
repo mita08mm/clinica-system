@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import { apiEndpoint } from '@/lib/config';
+import ArrowIcon from '@/components/icons/ArrowIcon'
 
 export default function NuevoPacientePage() {
   const router = useRouter();
@@ -85,10 +86,12 @@ export default function NuevoPacientePage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-4xl space-y-6">
-          <div className="flex items-center gap-4">
-            <Link href="/pacientes" className="text-marengo hover:text-concreto">← Volver</Link>
-            <div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="relative flex items-center justify-center mb-2">
+            <Link href="/pacientes" className="absolute left-0 p-2 rounded-full hover:bg-piel/20 transition-colors">
+              <ArrowIcon className="w-7 h-7" />
+            </Link>
+            <div className="text-center">
               <h1 className="text-3xl font-heading font-bold text-concreto">Nuevo Paciente</h1>
               <p className="text-marengo mt-1">Registra un nuevo paciente en el sistema</p>
             </div>
@@ -151,7 +154,7 @@ export default function NuevoPacientePage() {
                 <div>
                   <label className={labelClass}>Teléfono *</label>
                   <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
-                    placeholder="+34..." className={inputClass} required disabled={isLoading} />
+                    placeholder="799..." className={inputClass} required disabled={isLoading} />
                 </div>
                 <div>
                   <label className={labelClass}>Email</label>
@@ -246,7 +249,7 @@ export default function NuevoPacientePage() {
                 <div>
                   <label className={labelClass}>Contacto Emergencia - Teléfono *</label>
                   <input type="tel" name="contactoEmergenciaTelefono" value={formData.contactoEmergenciaTelefono}
-                    onChange={handleChange} placeholder="+34..."
+                    onChange={handleChange} placeholder="797..."
                     className={inputClass} disabled={isLoading} />
                 </div>
               </div>
@@ -256,7 +259,7 @@ export default function NuevoPacientePage() {
               <div className="flex justify-end gap-4">
                 <Link href="/pacientes" className="btn-secondary">Cancelar</Link>
                 <button type="submit" disabled={isLoading} className="btn-primary">
-                  {isLoading ? 'Guardando...' : 'Guardar paciente →'}
+                  {isLoading ? 'Guardando...' : 'Guardar paciente'}
                 </button>
               </div>
             </div>
