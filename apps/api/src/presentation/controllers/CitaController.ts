@@ -51,7 +51,10 @@ export class CitaController {
 
       const cita = await this.createCitaUseCase.execute({
         ...validatedData,
-        fecha: new Date(validatedData.fecha),
+        fecha: (() => {
+          const [year, month, day] = validatedData.fecha.split('T')[0].split('-').map(Number);
+          return new Date(year, month - 1, day);
+        })(),
       });
 
       res.status(201).json({

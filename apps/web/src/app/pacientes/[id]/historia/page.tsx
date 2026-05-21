@@ -32,8 +32,8 @@ function HistoriaContent() {
     );
   }
 
-  const todasRecetas = historia.consultas.flatMap((c) => c.recetas || []);
-  const todosDocumentos = historia.consultas.flatMap((c) => c.documentos || []);
+  const todasRecetas = (historia.consultas ?? []).flatMap((c) => c.recetas || []);
+  const todosDocumentos = (historia.consultas ?? []).flatMap((c) => c.documentos || []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-piel/30 via-white to-piel/20">
@@ -45,8 +45,8 @@ function HistoriaContent() {
           
           {/* Columna Principal: Lista de Consultas (75%) */}
           <div className="col-span-3">
-            {historia.consultas.length > 0 ? (
-              <ConsultasList consultas={historia.consultas} />
+            {(historia.consultas ?? []).length > 0 ? (
+               <ConsultasList consultas={historia.consultas ?? []} />
             ) : (
               <EmptyState pacienteId={pacienteId} />
             )}

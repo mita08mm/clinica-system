@@ -102,11 +102,9 @@ export class CitaRepository {
   }
 
   async findByFecha(fecha: Date) {
-    const startOfDay = new Date(fecha);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(fecha);
-    endOfDay.setHours(23, 59, 59, 999);
+    const dateStr = fecha.toISOString().split('T')[0]; // "2026-05-21"
+    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+    const endOfDay   = new Date(`${dateStr}T23:59:59.999Z`);
 
     return this.prisma.cita.findMany({
       where: {
