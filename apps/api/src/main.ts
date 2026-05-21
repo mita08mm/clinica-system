@@ -100,6 +100,14 @@ app.use('/api/medicamentos', medicamentoRoutes);
 import insumoRoutes from './presentation/routes/insumo.routes';
 app.use('/api/insumos', insumoRoutes);
 
+// Rutas de consultas médicas  
+import consultaRoutes from './presentation/routes/consulta.routes';
+app.use('/api/consultas', consultaRoutes);
+
+// Rutas de historia clínica (montadas sobre pacientes)
+import pacienteHistoriaRoutes from './presentation/routes/paciente-historia.routes';
+app.use('/api/pacientes', pacienteHistoriaRoutes);
+
 // 404 handler
 app.use((_req, res) => {
   res.status(404).json({

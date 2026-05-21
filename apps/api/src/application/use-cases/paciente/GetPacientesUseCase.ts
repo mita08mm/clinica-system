@@ -1,4 +1,4 @@
-import { PacienteRepository } from '../../infrastructure/repositories/PacienteRepository';
+import { PacienteRepository } from '../../../infrastructure/repositories/PacienteRepository';
 
 export class GetPacientesUseCase {
   constructor(private pacienteRepository: PacienteRepository) {}

@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const menuItems = [
-  { href: '/pacientes', label: 'Pacientes', icon: '👤' },
-  { href: '/citas', label: 'Citas', icon: '📅' },
-  { href: '/cobros', label: 'Cobros', icon: '💰' },
-  { href: '/recetas', label: 'Recetas', icon: '💊' },
-  { href: '/inventario', label: 'Inventario', icon: '📦' },
+  { href: '/pacientes', label: 'Pacientes', icon: '' },
+  { href: '/citas', label: 'Citas', icon: '' },
+  { href: '/cobros', label: 'Cobros', icon: '' },
+  { href: '/recetas', label: 'Recetas', icon: '' },
+  { href: '/inventario', label: 'Inventario', icon: '' },
 ];
 
 export default function DashboardLayout({

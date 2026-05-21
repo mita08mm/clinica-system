@@ -175,12 +175,21 @@ export default function PacientesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Link
-                          href={`/pacientes/${paciente.id}`}
-                          className="text-morena hover:text-morena/80 font-medium"
-                        >
-                          Ver detalle
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/pacientes/${paciente.id}/historia`}
+                            className="text-morena hover:text-morena/80 font-medium"
+                          >
+                            Ver Historial
+                          </Link>
+                          <span className="text-gray-300">|</span>
+                          <Link
+                            href={`/pacientes/${paciente.id}`}
+                            className="text-concreto hover:text-marengo font-medium"
+                          >
+                            Editar
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
