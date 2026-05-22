@@ -9,6 +9,7 @@ import AppointmentIcon from '../icons/AppointmentIcon';
 import MoneyIcon from '../icons/MoneyIcon';
 import PrescriptionIcon from '../icons/PrescriptionIcon';
 import InventoryIcon from '../icons/InventoryIcon';
+import LogoutIcon from '../icons/LogoutIcon';
 
 const menuItems = [
   { href: '/pacientes', label: 'Pacientes', icon: <PersonIcon className="w-6 h-6" /> },
@@ -59,14 +60,14 @@ export default function DashboardLayout({
 
         {/* Footer */}
         <div className="p-4 border-t border-stone-200">
-          <Button
+          <button
             onClick={logout}
-            variant="danger"
-            size="sm"
-            className="w-full"
+            className="w-full flex items-center gap-3 px-2 py-2
+                      text-[#50453B] hover:opacity-70 transition-all"
           >
-            Cerrar Sesión
-          </Button>
+            <LogoutIcon className="w-5 h-5" />
+            <span className="text-sm">Cerrar Sesión</span>
+          </button>
         </div>
       </aside>
 

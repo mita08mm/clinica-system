@@ -5,6 +5,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import { apiEndpoint } from '@/lib/config';
+import EditIcon from '@/components/icons/EditIcon';
+import ClipboardIcon from '@/components/icons/ClipboardIcon';
 
 interface Paciente {
   id: string;
@@ -246,14 +248,24 @@ export default function PacientesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex items-center gap-3">
-                          <Link href={`/pacientes/${paciente.id}/historia`}
-                            className="text-morena hover:text-morena/80 font-medium">
-                            Ver Historial
+                          <Link
+                            href={`/pacientes/${paciente.id}/historia`}
+                            className="w-12 h-12 rounded-full bg-[#FEF4E4]
+                                      flex items-center justify-center
+                                      hover:scale-105 transition-all"
+                          >
+                            <ClipboardIcon
+                              color="#5A350F"
+                              className="w-6 h-6"
+                            />
                           </Link>
-                          <span className="text-gray-300">|</span>
-                          <Link href={`/pacientes/${paciente.id}`}
-                            className="text-concreto hover:text-marengo font-medium">
-                            Editar
+                          <Link
+                            href={`/pacientes/${paciente.id}`}
+                            className="w-12 h-12 rounded-full bg-[#EEEAE7]
+                                      flex items-center justify-center
+                                      hover:scale-105 transition-all"
+                          >
+                            <EditIcon />
                           </Link>
                         </div>
                       </td>

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiEndpoint } from '@/lib/config';
+import EditIcon from '@/components/icons/EditIcon';
+import TrashIcon from '@/components/icons/TrashIcon';
 
 interface Paciente {
   id: string;
@@ -360,20 +362,26 @@ export default function UpcomingToday({ citas, onCitaEliminada, onCitaActualizad
                     Cerrar
                   </button>
 
-                  {/* Editar → navega a la página de edición */}
+                  {/* Editar */}
                   <Link
                     href={`/citas/${citaSeleccionada.id}/editar`}
-                    className="flex-1 text-center py-2.5 bg-[#60412B] text-white text-xs font-medium rounded-xl hover:bg-[#60412B]/90 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5
+                              bg-[#60412B] text-white text-xs font-medium
+                              rounded-xl hover:bg-[#60412B]/90 transition-all"
                   >
-                    ✏️ Editar
+                    <EditIcon />
+                    Editar
                   </Link>
 
-                  {/* Eliminar → activa confirmación */}
+                  {/* Eliminar */}
                   <button
                     onClick={() => setConfirmandoEliminar(true)}
-                    className="flex-1 py-2.5 bg-red-50 text-red-600 text-xs font-medium rounded-xl hover:bg-red-100 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5
+                              bg-red-50 text-red-600 text-xs font-medium
+                              rounded-xl hover:bg-red-100 transition-all"
                   >
-                    🗑️ Eliminar
+                    <TrashIcon color="#CBCACA" />
+                    Eliminar
                   </button>
                 </div>
               ) : (
