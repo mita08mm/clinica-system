@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiEndpoint } from '@/lib/config';
 
 interface Paciente {
   id: string;
@@ -21,6 +23,12 @@ interface Cita {
   estado: string;
   notas?: string;
   paciente: Paciente;
+}
+
+interface UpcomingTodayProps {
+  citas: Cita[];
+  onCitaEliminada: (id: string) => void;   // ← nuevo
+  onCitaActualizada: () => void;            // ← nuevo
 }
 
 const ESTADO_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
@@ -72,11 +80,9 @@ function labelFecha(fechaStr: string): string {
   return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
 }
 
-interface UpcomingTodayProps {
-  citas: Cita[];
-}
 
-export default function UpcomingToday({ citas }: UpcomingTodayProps) {
+
+export default function UpcomingToday({ citas, onCitaEliminada, onCitaActualizada }: UpcomingTodayProps) {
   const [expandido, setExpandido]           = useState(false);
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
   const [modalTodas, setModalTodas]         = useState(false);
@@ -109,7 +115,39 @@ export default function UpcomingToday({ citas }: UpcomingTodayProps) {
   }, {});
 
   const diasOrdenados = Object.keys(agrupadasPorDia).sort();
+  const { token } = useAuth();
 
+  // ── Estados para la eliminación ─────────────────────────────────────────
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState('');
+
+  const cerrarDetalle = () => {
+    setCitaSeleccionada(null);
+    setConfirmandoEliminar(false);
+    setErrorEliminar('');
+  };
+  const handleEliminar = async () => {
+    if (!citaSeleccionada || !token) return;
+    setEliminando(true);
+    setErrorEliminar('');
+    try {
+      const response = await fetch(apiEndpoint(`/citas/${citaSeleccionada.id}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al eliminar la cita');
+      }
+      onCitaEliminada(citaSeleccionada.id); // actualiza el estado del padre
+      cerrarDetalle();
+    } catch (err) {
+      setErrorEliminar(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setEliminando(false);
+    }
+  };
   // Componente de tarjeta de cita (reutilizable)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function CitaCard({ cita, compact = false }: { cita: Cita; compact?: boolean }) {
@@ -240,17 +278,18 @@ export default function UpcomingToday({ citas }: UpcomingTodayProps) {
         </div>
       </div>
 
-      {/* ── MODAL DETALLE CITA ── */}
       {citaSeleccionada && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/20 backdrop-blur-sm"
-          onClick={() => setCitaSeleccionada(null)}
+          onClick={cerrarDetalle}
         >
           <div
             className="bg-white rounded-t-2xl sm:rounded-2xl border border-gray-100 shadow-2xl w-full sm:max-w-sm overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 rounded-lg mx-auto mt-3 sm:hidden" />
+
+            {/* Cabecera con color según estado — idéntica a la tuya */}
             <div className={`px-6 pt-5 pb-4 ${
               ESTADO_CONFIG[citaSeleccionada.estado]?.dot === 'bg-emerald-400' ? 'bg-emerald-50' :
               ESTADO_CONFIG[citaSeleccionada.estado]?.dot === 'bg-amber-400'   ? 'bg-amber-50'   : 'bg-[#FBF7F4]'
@@ -259,7 +298,7 @@ export default function UpcomingToday({ citas }: UpcomingTodayProps) {
                 <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded ${ESTADO_CONFIG[citaSeleccionada.estado]?.color}`}>
                   {ESTADO_CONFIG[citaSeleccionada.estado]?.label}
                 </span>
-                <button onClick={() => setCitaSeleccionada(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+                <button onClick={cerrarDetalle} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
               </div>
               <h3 className="text-xl font-serif font-medium text-[#60412B] mt-2">
                 {citaSeleccionada.paciente?.nombre} {citaSeleccionada.paciente?.apellido}
@@ -269,11 +308,21 @@ export default function UpcomingToday({ citas }: UpcomingTodayProps) {
                 {citaSeleccionada.motivo}
               </p>
             </div>
+
+            {/* Datos de la cita — idéntico al tuyo */}
             <div className="px-6 py-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Horario</span>
                 <span className="font-semibold text-[#60412B] font-mono">
                   {formatHora(citaSeleccionada.horaInicio)} – {formatHora(citaSeleccionada.horaFin)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Fecha</span>
+                <span className="font-medium text-[#60412B]">
+                  {new Date(citaSeleccionada.fecha).toLocaleDateString('es-BO', {
+                    weekday: 'short', day: 'numeric', month: 'long'
+                  })}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -285,21 +334,81 @@ export default function UpcomingToday({ citas }: UpcomingTodayProps) {
               {citaSeleccionada.notas && (
                 <div className="text-sm">
                   <span className="text-gray-500 block mb-1">Notas</span>
-                  <p className="text-[#60412B]/80 bg-[#FBF7F4] rounded-lg px-3 py-2 text-xs">{citaSeleccionada.notas}</p>
+                  <p className="text-[#60412B]/80 bg-[#FBF7F4] rounded-lg px-3 py-2 text-xs">
+                    {citaSeleccionada.notas}
+                  </p>
                 </div>
               )}
+
+              {/* Error de eliminación */}
+              {errorEliminar && (
+                <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorEliminar}</p>
+              )}
             </div>
-            <div className="px-6 pb-6 flex gap-2">
-              <button onClick={() => setCitaSeleccionada(null)} className="flex-1 py-2.5 bg-gray-50 text-gray-500 text-xs font-medium rounded-xl hover:bg-gray-100 transition-all">
-                Cerrar
-              </button>
-              <Link href={`/citas/${citaSeleccionada.id}/editar`} className="flex-1 text-center py-2.5 bg-[#60412B] text-white text-xs font-medium rounded-xl hover:bg-[#60412B]/90 transition-all">
-                Editar cita
-              </Link>
+
+            {/* ── BOTONES ──────────────────────────────────────────────────── */}
+            <div className="px-6 pb-6 space-y-2">
+
+              {/* Vista normal: los 3 botones */}
+              {!confirmandoEliminar ? (
+                <div className="flex gap-2">
+                  {/* Cerrar */}
+                  <button
+                    onClick={cerrarDetalle}
+                    className="flex-1 py-2.5 bg-gray-50 text-gray-500 text-xs font-medium rounded-xl hover:bg-gray-100 transition-all"
+                  >
+                    Cerrar
+                  </button>
+
+                  {/* Editar → navega a la página de edición */}
+                  <Link
+                    href={`/citas/${citaSeleccionada.id}/editar`}
+                    className="flex-1 text-center py-2.5 bg-[#60412B] text-white text-xs font-medium rounded-xl hover:bg-[#60412B]/90 transition-all"
+                  >
+                    ✏️ Editar
+                  </Link>
+
+                  {/* Eliminar → activa confirmación */}
+                  <button
+                    onClick={() => setConfirmandoEliminar(true)}
+                    className="flex-1 py-2.5 bg-red-50 text-red-600 text-xs font-medium rounded-xl hover:bg-red-100 transition-all"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              ) : (
+                /* Vista de confirmación */
+                <div className="space-y-3">
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-center">
+                    <p className="text-sm font-semibold text-red-700">¿Eliminar esta cita?</p>
+                    <p className="text-xs text-red-500 mt-0.5">
+                      {citaSeleccionada.paciente?.nombre} · {formatHora(citaSeleccionada.horaInicio)}
+                    </p>
+                    <p className="text-xs text-red-400 mt-1">Esta acción no se puede deshacer.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setConfirmandoEliminar(false); setErrorEliminar(''); }}
+                      disabled={eliminando}
+                      className="flex-1 py-2.5 bg-gray-50 text-gray-600 text-xs font-medium rounded-xl hover:bg-gray-100 transition-all disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleEliminar}
+                      disabled={eliminando}
+                      className="flex-1 py-2.5 bg-red-600 text-white text-xs font-medium rounded-xl hover:bg-red-700 transition-all disabled:opacity-50"
+                    >
+                      {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* ── MODAL TODAS LAS CITAS ── */}
       {modalTodas && (

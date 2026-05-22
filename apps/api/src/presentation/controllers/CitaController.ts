@@ -7,7 +7,7 @@ import { UpdateCitaUseCase } from '../../application/use-cases/cita/UpdateCitaUs
 import { CancelarCitaUseCase } from '../../application/use-cases/cita/CancelarCitaUseCase';
 import { GetCitasByPacienteUseCase } from '../../application/use-cases/cita/GetCitasByPacienteUseCase';
 import { GetCitasByFechaUseCase } from '../../application/use-cases/cita/GetCitasByFechaUseCase';
-
+import { DeleteCitaUseCase } from '../../application/use-cases/cita/DeleteCitaUseCase';
 const createCitaSchema = z.object({
   pacienteId: z.string().uuid('ID de paciente invalido'),
   fecha: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -43,6 +43,7 @@ export class CitaController {
     private cancelarCitaUseCase: CancelarCitaUseCase,
     private getCitasByPacienteUseCase: GetCitasByPacienteUseCase,
     private getCitasByFechaUseCase: GetCitasByFechaUseCase,
+    private deleteCitaUseCase: DeleteCitaUseCase,
   ) {}
 
   create = async (req: Request, res: Response): Promise<void> => {
@@ -238,6 +239,29 @@ export class CitaController {
         success: false,
         error: 'Error interno del servidor',
       });
+    }
+  };
+
+  delete = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      if (typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'ID invalido' });
+        return;
+      }
+
+      await this.deleteCitaUseCase.execute(id);
+      res.status(200).json({
+        success: true,
+        message: 'Cita eliminada correctamente',
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Cita no encontrada') {
+        res.status(404).json({ success: false, error: error.message });
+        return;
+      }
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
     }
   };
 }

@@ -8,6 +8,7 @@ import { UpdateCitaUseCase } from '../../application/use-cases/cita/UpdateCitaUs
 import { CancelarCitaUseCase } from '../../application/use-cases/cita/CancelarCitaUseCase';
 import { GetCitasByPacienteUseCase } from '../../application/use-cases/cita/GetCitasByPacienteUseCase';
 import { GetCitasByFechaUseCase } from '../../application/use-cases/cita/GetCitasByFechaUseCase';
+import { DeleteCitaUseCase } from '../../application/use-cases/cita/DeleteCitaUseCase';
 import { CitaController } from '../controllers/CitaController';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -23,6 +24,7 @@ const updateCitaUseCase = new UpdateCitaUseCase(citaRepository);
 const cancelarCitaUseCase = new CancelarCitaUseCase(citaRepository);
 const getCitasByPacienteUseCase = new GetCitasByPacienteUseCase(citaRepository);
 const getCitasByFechaUseCase = new GetCitasByFechaUseCase(citaRepository);
+const deleteCitaUseCase = new DeleteCitaUseCase(citaRepository);
 
 const citaController = new CitaController(
   createCitaUseCase,
@@ -32,6 +34,7 @@ const citaController = new CitaController(
   cancelarCitaUseCase,
   getCitasByPacienteUseCase,
   getCitasByFechaUseCase,
+  deleteCitaUseCase,
 );
 
 // Routes
@@ -40,5 +43,5 @@ router.get('/', authMiddleware, citaController.getAll);
 router.get('/:id', authMiddleware, citaController.getById);
 router.patch('/:id', authMiddleware, citaController.update);
 router.post('/:id/cancelar', authMiddleware, citaController.cancelar);
-
+router.delete('/:id', authMiddleware, citaController.delete); 
 export default router;

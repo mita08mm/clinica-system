@@ -1,6 +1,5 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -15,7 +14,6 @@ interface Paciente {
   telefono: string;
   email?: string;
 }
-
 interface Cita {
   id: string;
   pacienteId: string;
@@ -34,24 +32,33 @@ export default function CitasPage() {
   const [error, setError] = useState('');
   const { token } = useAuth();
 
-  useEffect(() => {
+  const fetchCitas = useCallback(async () => {
     if (!token) return;
-    const fetchCitas = async () => {
-      try {
-        const response = await fetch(apiEndpoint('/citas'), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Error al obtener citas');
-        const data = await response.json();
-        setCitas(data.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchCitas();
+    try {
+      const response = await fetch(apiEndpoint('/citas'), {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Error al obtener citas');
+      const data = await response.json();
+      setCitas(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setIsLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => { fetchCitas(); }, [fetchCitas]);
+
+  // ── Callback: elimina una cita del estado local ──────────────────────────
+  const handleCitaEliminada = useCallback((id: string) => {
+    setCitas(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  // ── Callback: recarga todo tras editar (garantiza consistencia) ──────────
+  const handleCitaActualizada = useCallback(() => {
+    fetchCitas();
+  }, [fetchCitas]);
 
   if (isLoading) {
     return (
@@ -82,20 +89,18 @@ export default function CitasPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-4">
-          {/* Header */}
           <div>
             <h1 className="text-3xl font-heading font-bold text-concreto">Citas</h1>
             <p className="text-marengo mt-1">Gestión de turnos y citas médicas</p>
           </div>
-
-          {/* Layout: en desktop sidebar + calendario, en móvil apilado */}
           <div className="flex flex-col lg:flex-row gap-4 items-start">
-            {/* Widget upcoming — en móvil va arriba, en desktop a la derecha */}
             <div className="w-full lg:w-72 lg:flex-shrink-0 order-first lg:order-last">
-              <UpcomingToday citas={citas} />
+              <UpcomingToday
+                citas={citas}
+                onCitaEliminada={handleCitaEliminada}   
+                onCitaActualizada={handleCitaActualizada} 
+              />
             </div>
-
-            {/* Calendario — ocupa el resto */}
             <div className="flex-1 min-w-0">
               <CalendarioCitas citas={citas} />
             </div>
