@@ -9,7 +9,8 @@ import { GetCobrosByPacienteUseCase } from '../../application/use-cases/cobro/Ge
 
 const itemCobroSchema = z.object({
   tipo: z.enum(['SERVICIO', 'PRODUCTO', 'PAQUETE']),
-  itemId: z.string().uuid('ID de item invalido').optional(),
+  servicioId: z.string().uuid('ID de servicio invalido').optional(),
+  productoId: z.string().uuid('ID de producto invalido').optional(),
   nombre: z.string().min(1, 'El nombre del item es requerido'),
   cantidad: z.number().int().positive('La cantidad debe ser mayor a 0'),
   precioUnitario: z.number().nonnegative('El precio unitario no puede ser negativo'),

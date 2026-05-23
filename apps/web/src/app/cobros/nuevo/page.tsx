@@ -85,8 +85,7 @@ export default function NuevoCobroPage() {
           pacienteId,
           items: [
             {
-              tipo: 'SERVICIO',
-              itemId: crypto.randomUUID(),
+              tipo: 'PAQUETE',
               nombre: titulo.trim(),
               cantidad: 1,
               precioUnitario: monto,

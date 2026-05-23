@@ -9,25 +9,25 @@ export default function TratamientosList({
   tratamientos,
 }: TratamientosListProps) {
   return (
-    <section className="card space-y-4">
-      <div>
-        <h4 className="text-xm">Historial medico</h4>
+    <section className="card space-y-5">
+      <div className="border-b border-stone-100 pb-4">
+        <h4 className="text-lg font-heading text-concreto">Historial medico</h4>
       </div>
 
       {tratamientos.map((tratamiento) => {
         return (
           <article key={tratamiento.id} className="relative">
-            <Card>
-              <CardContent className="px-5 py-4">
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-marengo">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="px-6 py-5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-marengo/70">
                   {formatDate(tratamiento.fecha)}
                 </p>
      
-                <h3 className="mt-2 text-lg font-heading text-concreto">
+                <h3 className="mt-3 text-xl font-heading text-concreto">
                   {tratamiento.nombreTratamiento}
                 </h3>
 
-                <div className="mt-4 space-y-3 text-sm text-marengo">
+                <div className="mt-5 space-y-4 text-sm text-marengo">
                   <Field label="Tipo de tratamiento" value={formatTipo(tratamiento.tipoTratamiento)} />
                   <Field label="Zona tratada" value={tratamiento.zonaTratada} />
                   <Field label="Objetivo" value={tratamiento.objetivo} />
@@ -58,8 +58,8 @@ function Field({ label, value }: { label: string; value?: string }) {
 
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/70">{label}</p>
-      <p className="mt-1 leading-6 text-concreto">{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/70">{label}</p>
+      <p className="mt-1.5 leading-relaxed text-concreto">{value}</p>
     </div>
   );
 }

@@ -34,8 +34,8 @@ function HistoriaContent() {
     <main className="min-h-screen bg-canvas">
       <PatientHeader historia={historia} pacienteId={pacienteId} />
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-12">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="mx-auto max-w-7xl px-6 py-10 lg:px-12">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           <section className="lg:col-span-7">
             {historia.tratamientos && historia.tratamientos.length > 0 ? (
               <TratamientosList tratamientos={historia.tratamientos} />
@@ -44,7 +44,7 @@ function HistoriaContent() {
             )}
           </section>
 
-          <aside className="space-y-6 lg:col-span-5">
+          <aside className="space-y-8 lg:col-span-5">
             <ProtocolosPanel 
               pacienteId={pacienteId}
             />

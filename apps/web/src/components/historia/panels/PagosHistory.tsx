@@ -43,7 +43,7 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(apiEndpoint(`/pacientes/${pacienteId}/cobros`), {
+      const response = await fetch(apiEndpoint(`/cobros?pacienteId=${pacienteId}`), {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -129,7 +129,7 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
           pacienteId,
           items: [
             {
-              tipo: 'SERVICIO',
+              tipo: 'PAQUETE',
               nombre: titulo,
               cantidad: 1,
               precioUnitario: costo,
@@ -200,15 +200,18 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
             <p className="mt-2 text-xs text-gray-400">Cargando registro de cobros...</p>
           </div>
         ) : cobros.length === 0 ? (
-          <div className="rounded-lg bg-stone-50 px-4 py-8 text-center">
-            <p className="text-sm text-concreto">Sin registros de cobro</p>
-            <p className="mt-1 text-xs text-marengo">boton + para registrar</p>
+          <div className="rounded-lg bg-gradient-to-br from-stone-50 to-white border border-stone-200 px-6 py-10 text-center">
+            <svg className="mx-auto h-12 w-12 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="mt-4 text-sm font-medium text-concreto">Sin registros de cobro</p>
+            <p className="mt-1 text-xs text-marengo">Presiona el botón + para crear el primer registro</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="hidden grid-cols-[minmax(0,1.5fr)_140px_120px_120px_120px_120px] gap-4 border-b border-stone-200 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/70 sm:grid">
-              <p>Titulo</p>
-              <p>Tipo</p>
+          <div className="space-y-4">
+            <div className="hidden grid-cols-[minmax(0,2fr)_repeat(5,1fr)] gap-4 border-b border-stone-200 pb-3 text-[11px] font-semibold uppercase tracking-wider text-marengo/80 sm:grid">
+              <p>Título</p>
+              <p className="text-center">Tipo</p>
               <p className="text-right">Costo</p>
               <p className="text-right">Pagado</p>
               <p className="text-right">Pendiente</p>
@@ -216,37 +219,41 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
             </div>
 
             {cobros.map((cobro) => (
-              <div key={cobro.id} className="grid grid-cols-1 gap-2 border-b border-stone-100 py-3 sm:grid-cols-[minmax(0,1.5fr)_140px_120px_120px_120px_120px] sm:gap-4">
+              <div key={cobro.id} className="grid grid-cols-1 gap-3 border-b border-stone-100 py-4 sm:grid-cols-[minmax(0,2fr)_repeat(5,1fr)] sm:gap-4">
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Titulo</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Título</p>
                   <p className="text-sm font-medium text-concreto">{cobro.titulo}</p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Tipo</p>
-                  <p className="text-sm text-marengo">{cobro.tipo === 'SERVICIO' ? 'Servicio' : 'Producto'}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Tipo</p>
+                  <p className="text-sm text-marengo sm:text-center">
+                    <span className="inline-block px-2 py-0.5 bg-stone-100 rounded text-xs">
+                      {cobro.tipo === 'SERVICIO' ? 'Servicio' : 'Producto'}
+                    </span>
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Costo</p>
-                  <p className="text-sm text-concreto sm:text-right">{formatCurrency(cobro.costo)}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Costo</p>
+                  <p className="text-sm font-medium text-concreto sm:text-right">{formatCurrency(cobro.costo)}</p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Pagado</p>
-                  <p className="text-sm text-concreto sm:text-right">{formatCurrency(cobro.pagado)}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Pagado</p>
+                  <p className="text-sm font-medium text-green-700 sm:text-right">{formatCurrency(cobro.pagado)}</p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Pendiente</p>
-                  <p className={`text-sm sm:text-right ${cobro.pendiente > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Pendiente</p>
+                  <p className={`text-sm font-semibold sm:text-right ${cobro.pendiente > 0 ? 'text-red-600' : 'text-green-700'}`}>
                     {formatCurrency(cobro.pendiente)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">Total</p>
-                  <p className="text-sm text-concreto sm:text-right">{formatCurrency(cobro.total)}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 sm:hidden mb-1">Total</p>
+                  <p className="text-sm font-semibold text-concreto sm:text-right">{formatCurrency(cobro.total)}</p>
                 </div>
               </div>
             ))}
@@ -355,19 +362,26 @@ function normalizeCobros(data: unknown[]): CobroRecord[] {
     const rawCobro = entry as {
       id?: string;
       total?: number | string;
-      pagado?: number | string;
-      saldo?: number | string;
       items?: Array<{
         id?: string;
         tipo?: string;
         nombre?: string;
         precioUnitario?: number | string;
+        cantidad?: number;
+      }>;
+      pagos?: Array<{
+        monto?: number | string;
       }>;
     };
 
     const total = Number(rawCobro.total ?? 0);
-    const pagado = Number(rawCobro.pagado ?? 0);
-    const saldo = Number(rawCobro.saldo ?? Math.max(total - pagado, 0));
+    
+    // Calcular total pagado desde el array de pagos
+    const pagado = (rawCobro.pagos ?? []).reduce((sum, pago) => {
+      return sum + Number(pago.monto ?? 0);
+    }, 0);
+    
+    const saldo = Math.max(total - pagado, 0);
 
     if (!rawCobro.items || rawCobro.items.length === 0) {
       return [
@@ -386,8 +400,8 @@ function normalizeCobros(data: unknown[]): CobroRecord[] {
     return rawCobro.items.map((item, itemIndex) => ({
       id: item.id ?? `${rawCobro.id ?? index}-${itemIndex}`,
       titulo: item.nombre ?? 'Cobro',
-      tipo: item.tipo === 'PRODUCTO' ? 'PRODUCTO' : 'SERVICIO',
-      costo: Number(item.precioUnitario ?? total),
+      tipo: (item.tipo === 'PRODUCTO' ? 'PRODUCTO' : 'SERVICIO') as 'SERVICIO' | 'PRODUCTO',
+      costo: Number(item.precioUnitario ?? 0) * Number(item.cantidad ?? 1),
       pagado,
       pendiente: saldo,
       total,

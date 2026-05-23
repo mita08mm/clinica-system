@@ -72,15 +72,6 @@ export class HistoriaClinicaRepository {
                 },
               },
             },
-            documentos: {
-              select: {
-                id: true,
-                nombre: true,
-                tipo: true,
-                url: true,
-                createdAt: true,
-              },
-            },
           },
           orderBy: {
             fecha: 'desc',

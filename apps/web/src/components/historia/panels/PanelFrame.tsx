@@ -16,11 +16,11 @@ export default function PanelFrame({
 }: PanelFrameProps) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-stone-100 px-3 py-2">
-        <h2 className="text-sl font-heading text-concreto">{title}</h2>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-stone-100 px-5 py-4">
+        <h2 className="text-lg font-heading text-concreto">{title}</h2>
         {action}
       </CardHeader>
-      <CardContent className={contentClassName ?? 'px-3 py-2'}>{children}</CardContent>
+      <CardContent className={contentClassName ?? 'px-5 py-4'}>{children}</CardContent>
     </Card>
   );
 }

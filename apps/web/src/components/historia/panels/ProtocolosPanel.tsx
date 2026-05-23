@@ -197,37 +197,39 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
               </p>
             </div>
           ) : prescripciones.length === 0 ? (
-            <div className="rounded-lg bg-stone-50 px-4 py-8 text-center">
-              <p className="mt-1 text-xs text-marengo">
-                boton + para registrar
-              </p>
+            <div className="rounded-lg bg-gradient-to-br from-stone-50 to-white border border-stone-200 px-6 py-10 text-center">
+              <svg className="mx-auto h-12 w-12 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="mt-4 text-sm font-medium text-concreto">Sin prescripciones</p>
+              <p className="mt-1 text-xs text-marengo">Presiona el botón + para crear la primera prescripción</p>
             </div>
           ) : (
             prescripciones.slice(0, 5).map((prescripcion) => (
               <div
                 key={prescripcion.id}
-                className="rounded-lg border border-stone-100 px-4 py-4 last:pb-4"
+                className="rounded-lg border border-stone-200 bg-white shadow-sm"
               >
-                <div className="hidden grid-cols-[minmax(0,220px)_minmax(0,1fr)] gap-4 border-b border-stone-200 pb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/70 sm:grid">
+                <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-6 border-b border-stone-200 bg-stone-50/50 px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-marengo/80 sm:grid">
                   <p>Nombre del producto</p>
                   <p>Indicaciones</p>
                 </div>
                 {prescripcion.items.map((item) => (
                   <div
                     key={item.id}
-                    className="grid grid-cols-1 gap-1 border-t border-stone-100 py-3 first:border-t-0 first:pt-3 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)] sm:gap-4"
+                    className="grid grid-cols-1 gap-3 border-t border-stone-100 px-5 py-4 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-6"
                   >
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 mb-1 sm:hidden">
                         Nombre del producto
                       </p>
-                      <p className="text-sm text-concreto">{item.nombre}</p>
+                      <p className="text-sm font-medium text-concreto">{item.nombre}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-marengo/60 sm:hidden">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/60 mb-1 sm:hidden">
                         Indicaciones
                       </p>
-                      <p className="text-sm text-marengo">
+                      <p className="text-sm leading-relaxed text-marengo">
                         {item.indicaciones}
                       </p>
                     </div>

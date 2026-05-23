@@ -46,11 +46,6 @@ export class TratamientoRepository {
             pagos: true,
           },
         },
-        documentos: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-        },
       },
     });
   }

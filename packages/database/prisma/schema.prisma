@@ -302,7 +302,8 @@ model ItemCobro {
   id             String        @id @default(uuid())
   cobroId        String
   tipo           TipoItemCobro
-  itemId         String
+  servicioId     String?
+  productoId     String?
   nombre         String
   cantidad       Int
   precioUnitario Decimal       @db.Decimal(10, 2)
@@ -310,10 +311,12 @@ model ItemCobro {
   createdAt      DateTime      @default(now())
 
   cobro    Cobro     @relation(fields: [cobroId], references: [id], onDelete: Cascade)
-  servicio Servicio? @relation(fields: [itemId], references: [id], map: "ItemCobro_servicio_fkey")
-  producto Producto? @relation(fields: [itemId], references: [id], map: "ItemCobro_producto_fkey")
+  servicio Servicio? @relation(fields: [servicioId], references: [id])
+  producto Producto? @relation(fields: [productoId], references: [id])
 
   @@index([cobroId])
+  @@index([servicioId])
+  @@index([productoId])
   @@map("items_cobro")
 }
 

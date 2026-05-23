@@ -121,8 +121,9 @@ export interface Receta {
 export interface ItemCobro {
   id: string;
   cobroId: string;
-  tipo: 'SERVICIO' | 'MEDICAMENTO' | 'INSUMO';
-  itemId: string;
+  tipo: 'SERVICIO' | 'PRODUCTO' | 'PAQUETE';
+  servicioId?: string;
+  productoId?: string;
   nombre: string;
   cantidad: number;
   precioUnitario: number;

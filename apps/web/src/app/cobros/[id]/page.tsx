@@ -86,9 +86,6 @@ export default function CobroDetailPage() {
     }).format(monto);
   };
 
-  const abonado = cobro.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
-  const pendiente = Math.max(Number(cobro.total) - abonado, 0);
-
   if (isLoading) {
     return (
       <ProtectedRoute>
@@ -117,6 +114,9 @@ export default function CobroDetailPage() {
   }
 
   if (!cobro) return null;
+
+  const abonado = cobro.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
+  const pendiente = Math.max(Number(cobro.total) - abonado, 0);
 
   return (
     <ProtectedRoute>
