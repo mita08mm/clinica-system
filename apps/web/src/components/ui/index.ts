@@ -19,3 +19,7 @@ export { Textarea } from './textarea';
 export type { TextareaProps } from './textarea';
 export { default as DatePicker } from './DatePicker';
 export type { DatePickerProps } from './DatePicker';
+
+export { Modal } from './modal';
+export { Spinner } from './spinner';
+export { EmptyState as EmptyStatePrimitive } from './empty-state';

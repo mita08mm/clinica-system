@@ -1,6 +1,6 @@
 'use client';
 
-import { apiEndpoint } from '@/lib/config';
+import { api } from '@/lib/api/client';
 import { Documento } from '@/types/historia';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AttachmentUploadKind } from './attachments.types';
@@ -23,19 +23,8 @@ export function useAttachments({
   const documentoInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDocumentos = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(apiEndpoint(`/pacientes/${pacienteId}/documentos`), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Error al cargar archivos');
-    }
-
-    const data = await response.json();
-    setDocumentos(data.data ?? []);
+    const data = await api.get<Documento[]>(`/pacientes/${pacienteId}/documentos`);
+    setDocumentos(data ?? []);
   }, [pacienteId]);
 
   useEffect(() => {
@@ -54,21 +43,7 @@ export function useAttachments({
     formData.append('pacienteId', pacienteId);
     formData.append('kind', kind === 'fotos' ? 'FOTO' : 'DOCUMENTO');
 
-    const token = localStorage.getItem('token');
-    const response = await fetch(apiEndpoint('/documentos/upload'), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Error al subir archivo');
-    }
-
-    return response.json();
+    return api.upload('/documentos/upload', formData);
   }, [pacienteId]);
 
   const handleInlineUpload = useCallback(async (file: File | null, kind: AttachmentUploadKind) => {
@@ -104,16 +79,7 @@ export function useAttachments({
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(apiEndpoint(`/documentos/${documentoId}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar');
-      }
-
+      await api.delete(`/documentos/${documentoId}`);
       await fetchDocumentos();
       onUploadSuccess?.();
     } catch {

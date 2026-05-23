@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { apiEndpoint } from '@/lib/config';
-import { Button, Card, CardContent, Input, Label, Select, Textarea } from '@/components/ui';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
+import { api } from '@/lib/api/client';
 
 interface Paciente {
   id: string;
@@ -16,10 +16,14 @@ interface Paciente {
   documento: string;
 }
 
+const inputBase =
+  'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors disabled:bg-[var(--neutral-50)]';
+const textareaBase =
+  'w-full px-3 py-2.5 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors resize-none disabled:bg-[var(--neutral-50)]';
+
 function NuevaConsultaContent() {
   const params = useParams();
   const router = useRouter();
-  const { token } = useAuth();
   const pacienteId = params.id as string;
 
   const [paciente, setPaciente] = useState<Paciente | null>(null);
@@ -27,7 +31,6 @@ function NuevaConsultaContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Formulario simplificado
   const [tipoTratamiento, setTipoTratamiento] = useState<'FACIAL' | 'CORPORAL' | 'CAPILAR'>('FACIAL');
   const [zonaTratada, setZonaTratada] = useState('');
   const [evaluacion, setEvaluacion] = useState('');
@@ -37,39 +40,27 @@ function NuevaConsultaContent() {
   const [proximaConsulta, setProximaConsulta] = useState('');
 
   useEffect(() => {
-    if (!token) return;
-
     const fetchPaciente = async () => {
       try {
-        const response = await fetch(apiEndpoint(`/pacientes/${pacienteId}`), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) throw new Error('Error al cargar paciente');
-
-        const data = await response.json();
-        setPaciente(data.data);
+        const data = await api.get<Paciente>(`/pacientes/${pacienteId}`);
+        setPaciente(data);
       } catch {
         setError('No se pudo cargar la información del paciente');
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchPaciente();
-  }, [pacienteId, token]);
+  }, [pacienteId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!zonaTratada.trim() || !objetivoSesion.trim()) {
       setError('La zona tratada y el objetivo son obligatorios');
       return;
     }
-
     setIsSaving(true);
     setError('');
-
     try {
       const payload = {
         pacienteId,
@@ -82,22 +73,7 @@ function NuevaConsultaContent() {
         observaciones: observaciones.trim() || undefined,
         proximaSesion: proximaConsulta ? new Date(`${proximaConsulta}T00:00:00`).toISOString() : undefined,
       };
-
-      const response = await fetch(apiEndpoint('/tratamientos'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || 'Error al crear tratamiento');
-      }
-
-      // Redirigir a la historia clínica
+      await api.post('/tratamientos', payload);
       router.push(`/pacientes/${pacienteId}/historia`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar tratamiento');
@@ -108,130 +84,132 @@ function NuevaConsultaContent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-lg h-12 w-12 border-b-2 border-morena"></div>
+      <div className="flex items-center justify-center min-h-[400px] text-sm text-[var(--neutral-500)]">
+        Cargando paciente...
       </div>
     );
   }
 
   if (!paciente) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-600">No se encontró el paciente</p>
+      <div className="rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+        No se encontró el paciente
       </div>
     );
   }
 
   return (
-    <div className="form-container space-y-4">
-      <div className="flex items-center gap-4">
-        <Link
-          href={`/pacientes/${pacienteId}/historia`}
-          className="inline-flex"
-        >
-          <Button type="button" variant="ghost" size="sm">← Volver</Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-concreto">Nueva Consulta</h1>
-          <p className="text-sm text-marengo">{paciente.nombre} {paciente.apellido}</p>
+    <div className="max-w-4xl">
+      <PageHeader
+        overline="Historia clínica"
+        title="Nueva consulta"
+        subtitle={`${paciente.nombre} ${paciente.apellido}`}
+        backHref={`/pacientes/${pacienteId}/historia`}
+      />
+
+      {error && (
+        <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+          {error}
         </div>
-      </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
-
-        <Card>
-          <CardContent className="p-6 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label required>Tipo de tratamiento</Label>
-                <Select
-                  value={tipoTratamiento}
-                  onChange={(e) => setTipoTratamiento(e.target.value as 'FACIAL' | 'CORPORAL' | 'CAPILAR')}
-                >
-                  <option value="FACIAL">Facial</option>
-                  <option value="CORPORAL">Corporal</option>
-                  <option value="CAPILAR">Capilar</option>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label required>Zona tratada</Label>
-                <Input
-                  type="text"
-                  value={zonaTratada}
-                  onChange={(e) => setZonaTratada(e.target.value)}
-                  placeholder="Rostro, abdomen, cuero cabelludo"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label required>Objetivo</Label>
-              <Input
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <FormSection title="Datos de la sesión">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Tipo de tratamiento" required>
+              <select
+                value={tipoTratamiento}
+                onChange={(e) => setTipoTratamiento(e.target.value as 'FACIAL' | 'CORPORAL' | 'CAPILAR')}
+                className={inputBase}
+                disabled={isSaving}
+              >
+                <option value="FACIAL">Facial</option>
+                <option value="CORPORAL">Corporal</option>
+                <option value="CAPILAR">Capilar</option>
+              </select>
+            </FormField>
+            <FormField label="Zona tratada" required>
+              <input
                 type="text"
-                value={objetivoSesion}
-                onChange={(e) => setObjetivoSesion(e.target.value)}
-                placeholder="Objetivo de la sesión"
+                value={zonaTratada}
+                onChange={(e) => setZonaTratada(e.target.value)}
+                placeholder="Rostro, abdomen, cuero cabelludo..."
+                className={inputBase}
                 required
+                disabled={isSaving}
               />
-            </div>
+            </FormField>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Nota clínica / evaluación</Label>
-              <Textarea
-                value={evaluacion}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEvaluacion(e.target.value)}
-                placeholder="Nota clínica o evaluación"
-                rows={3}
+          <FormField label="Objetivo" required>
+            <input
+              type="text"
+              value={objetivoSesion}
+              onChange={(e) => setObjetivoSesion(e.target.value)}
+              placeholder="Objetivo de la sesión"
+              className={inputBase}
+              required
+              disabled={isSaving}
+            />
+          </FormField>
+        </FormSection>
+
+        <FormSection title="Detalles clínicos">
+          <FormField label="Nota clínica / evaluación">
+            <textarea
+              value={evaluacion}
+              onChange={(e) => setEvaluacion(e.target.value)}
+              rows={3}
+              className={textareaBase}
+              disabled={isSaving}
+            />
+          </FormField>
+          <FormField label="Procedimiento">
+            <textarea
+              value={procedimiento}
+              onChange={(e) => setProcedimiento(e.target.value)}
+              rows={3}
+              className={textareaBase}
+              disabled={isSaving}
+            />
+          </FormField>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Observaciones">
+              <textarea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                rows={2}
+                className={textareaBase}
+                disabled={isSaving}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Procedimiento</Label>
-              <Textarea
-                value={procedimiento}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setProcedimiento(e.target.value)}
-                placeholder="Procedimiento"
-                rows={3}
+            </FormField>
+            <FormField label="Próxima consulta">
+              <input
+                type="date"
+                value={proximaConsulta}
+                onChange={(e) => setProximaConsulta(e.target.value)}
+                className={inputBase}
+                disabled={isSaving}
               />
-            </div>
+            </FormField>
+          </div>
+        </FormSection>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label>Observaciones</Label>
-                <Textarea
-                  value={observaciones}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setObservaciones(e.target.value)}
-                  placeholder="Observaciones"
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Próxima consulta</Label>
-                <Input
-                  type="date"
-                  value={proximaConsulta}
-                  onChange={(e) => setProximaConsulta(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex gap-3 justify-end">
-          <Link href={`/pacientes/${pacienteId}/historia`}>
-            <Button type="button" variant="outline" size="md">Cancelar</Button>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Link
+            href={`/pacientes/${pacienteId}/historia`}
+            className="inline-flex items-center h-10 px-4 rounded-md border border-[var(--neutral-300)] bg-white text-sm font-medium text-[var(--neutral-700)] hover:bg-[var(--neutral-50)] transition-colors"
+          >
+            Cancelar
           </Link>
-          <Button type="submit" variant="primary" size="md" disabled={isSaving}>
-            {isSaving ? 'Guardando...' : 'Guardar Consulta'}
-          </Button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center h-10 px-5 rounded-md bg-[var(--brand-morena)] text-white text-sm font-medium hover:bg-[var(--brand-morena-dark)] transition-colors disabled:opacity-60"
+          >
+            {isSaving ? 'Guardando...' : 'Guardar consulta'}
+          </button>
         </div>
       </form>
     </div>

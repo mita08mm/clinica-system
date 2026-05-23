@@ -2,17 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Link from 'next/link';
-import { apiEndpoint } from '@/lib/config';
-import ArrowIcon from '@/components/icons/ArrowIcon';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
 import DatePicker from '@/components/ui/DatePicker';
+import { api, ApiError } from '@/lib/api';
+
+const inputBase =
+  'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors disabled:bg-[var(--neutral-50)] disabled:text-[var(--neutral-500)]';
+const textareaBase =
+  'w-full px-3 py-2.5 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors resize-none disabled:bg-[var(--neutral-50)]';
 
 export default function NuevoPacientePage() {
   const router = useRouter();
-  const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,10 +39,10 @@ export default function NuevoPacientePage() {
     contactoEmergenciaTelefono: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    
-    // Si cambia el sexo y no es femenino, limpiar embarazoLactancia
     if (name === 'sexo' && value !== 'FEMENINO') {
       setFormData({ ...formData, [name]: value, embarazoLactancia: false });
     } else {
@@ -47,38 +51,31 @@ export default function NuevoPacientePage() {
   };
 
   const calcularEdad = () => {
-    if (!formData.fechaNacimiento) return '--';
+    if (!formData.fechaNacimiento) return '—';
     const hoy = new Date();
     const nac = new Date(formData.fechaNacimiento);
     const edad = hoy.getFullYear() - nac.getFullYear();
     const m = hoy.getMonth() - nac.getMonth();
-    return m < 0 || (m === 0 && hoy.getDate() < nac.getDate()) ? `${edad - 1} años` : `${edad} años`;
+    const final =
+      m < 0 || (m === 0 && hoy.getDate() < nac.getDate()) ? edad - 1 : edad;
+    return `${final} años`;
   };
-
-  const inputClass = "w-full px-4 py-3 rounded-lg border border-[#D7C5B9] focus:border-morena focus:ring-2 focus:ring-piel/20 transition-all outline-none bg-white";
-  const disabledClass = "w-full px-4 py-3 rounded-lg border border-[#D7C5B9] bg-[#F5F0EB] text-marengo outline-none";
-  const labelClass = "block text-xs font-medium text-concreto uppercase tracking-wider mb-2";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      const response = await fetch(apiEndpoint('/pacientes'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al crear paciente');
-      }
+      await api.post('/pacientes', formData);
       router.push('/pacientes');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : 'Error al crear paciente'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -87,190 +84,262 @@ export default function NuevoPacientePage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="relative flex items-center justify-center mb-2">
-            <Link href="/pacientes" className="absolute left-0 p-2 rounded-lg hover:bg-piel/20 transition-colors">
-              <ArrowIcon className="w-7 h-7" />
-            </Link>
-            <div className="text-center">
-              <h1 className="text-3xl font-heading font-bold text-concreto">Nuevo Paciente</h1>
-              <p className="text-marengo mt-1">Datos personales, datos clínicos y contacto de emergencia</p>
-            </div>
-          </div>
+        <div className="max-w-4xl">
+          <PageHeader
+            overline="Pacientes"
+            title="Nuevo paciente"
+            subtitle="Datos personales, clínicos y contacto de emergencia"
+            backHref="/pacientes"
+          />
 
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-
-            {/* DATOS PERSONALES */}
-            <div className="card p-8 space-y-6">
-              <div>
-                <h2 className="text-2xl font-heading text-morena">Datos Personales</h2>
-                <hr className="mt-2 border-[#D7C5B9]" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className={labelClass}>Nombre *</label>
-                  <input type="text" name="nombre" value={formData.nombre} onChange={handleChange}
-                    placeholder="Ej. Ana" className={inputClass} required disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Apellido *</label>
-                  <input type="text" name="apellido" value={formData.apellido} onChange={handleChange}
-                    placeholder="Ej. García" className={inputClass} required disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Tipo de Documento *</label>
-                  <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange}
-                    className={inputClass} required disabled={isLoading}>
-                    <option value="DNI">CI (Cédula de Identidad)</option>
-                    <option value="PASAPORTE">Pasaporte (Extranjero)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className={labelClass}>Número de Documento *</label>
-                  <input type="text" name="documento" value={formData.documento} onChange={handleChange}
-                    placeholder="00000000X" className={inputClass} required disabled={isLoading} />
-                </div>
-                <div>
-                  <DatePicker
-                    label="Fecha de Nacimiento"
-                    name="fechaNacimiento"
-                    value={formData.fechaNacimiento}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FormSection title="Datos personales">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="Nombre" required>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
                     onChange={handleChange}
+                    placeholder="Ej. Ana"
+                    className={inputBase}
                     required
                     disabled={isLoading}
-                    maxDate={new Date()}
                   />
-                </div>
-                <div>
-                  <label className={labelClass}>Edad (Auto)</label>
-                  <input type="text" value={calcularEdad()} className={disabledClass} disabled readOnly />
-                </div>
+                </FormField>
+                <FormField label="Apellido" required>
+                  <input
+                    type="text"
+                    name="apellido"
+                    value={formData.apellido}
+                    onChange={handleChange}
+                    placeholder="Ej. García"
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  />
+                </FormField>
+                <FormField label="Tipo de documento" required>
+                  <select
+                    name="tipoDocumento"
+                    value={formData.tipoDocumento}
+                    onChange={handleChange}
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  >
+                    <option value="DNI">CI (Cédula de identidad)</option>
+                    <option value="PASAPORTE">Pasaporte (Extranjero)</option>
+                  </select>
+                </FormField>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Teléfono *</label>
-                  <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
-                    placeholder="799..." className={inputClass} required disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Email</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleChange}
-                    placeholder="ejemplo@mail.com" className={inputClass} disabled={isLoading} />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="Número de documento" required>
+                  <input
+                    type="text"
+                    name="documento"
+                    value={formData.documento}
+                    onChange={handleChange}
+                    placeholder="00000000X"
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  />
+                </FormField>
+                <DatePicker
+                  label="Fecha de nacimiento"
+                  name="fechaNacimiento"
+                  value={formData.fechaNacimiento}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  maxDate={new Date()}
+                />
+                <FormField label="Edad">
+                  <input
+                    type="text"
+                    value={calcularEdad()}
+                    className={inputBase}
+                    disabled
+                    readOnly
+                  />
+                </FormField>
               </div>
 
-              <div>
-                <label className={labelClass}>Dirección</label>
-                <input type="text" name="direccion" value={formData.direccion} onChange={handleChange}
-                  placeholder="Calle, Ciudad, Provincia" className={inputClass} disabled={isLoading} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Teléfono" required>
+                  <input
+                    type="tel"
+                    name="telefono"
+                    value={formData.telefono}
+                    onChange={handleChange}
+                    placeholder="799..."
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  />
+                </FormField>
+                <FormField label="Email">
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="ejemplo@mail.com"
+                    className={inputBase}
+                    disabled={isLoading}
+                  />
+                </FormField>
               </div>
-            </div>
 
-            {/* DATOS CLÍNICOS ESTÉTICOS */}
-            <div className="card p-8 space-y-6">
-              <div>
-                <h2 className="text-2xl font-heading text-morena">Datos Clínicos</h2>
-                <p className="text-sm text-marengo mt-1">Información clínica relevante del paciente</p>
-                <hr className="mt-2 border-[#D7C5B9]" />
-              </div>
+              <FormField label="Dirección">
+                <input
+                  type="text"
+                  name="direccion"
+                  value={formData.direccion}
+                  onChange={handleChange}
+                  placeholder="Calle, Ciudad, Provincia"
+                  className={inputBase}
+                  disabled={isLoading}
+                />
+              </FormField>
+            </FormSection>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Sexo/Género *</label>
-                  <select name="sexo" value={formData.sexo} onChange={handleChange}
-                    className={inputClass} required disabled={isLoading}>
+            <FormSection
+              title="Datos clínicos"
+              description="Información clínica relevante del paciente"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Sexo / género" required>
+                  <select
+                    name="sexo"
+                    value={formData.sexo}
+                    onChange={handleChange}
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  >
                     <option value="">Seleccionar</option>
                     <option value="MASCULINO">Masculino</option>
                     <option value="FEMENINO">Femenino</option>
                     <option value="OTRO">Otro</option>
                   </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Objetivo principal</label>
-                  <input type="text" name="objetivoEstetico" value={formData.objetivoEstetico} onChange={handleChange}
+                </FormField>
+                <FormField label="Objetivo principal">
+                  <input
+                    type="text"
+                    name="objetivoEstetico"
+                    value={formData.objetivoEstetico}
+                    onChange={handleChange}
                     placeholder="Ej: Rejuvenecimiento facial, reducción corporal..."
-                    className={inputClass} disabled={isLoading} />
-                </div>
+                    className={inputBase}
+                    disabled={isLoading}
+                  />
+                </FormField>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className={labelClass}>Alergias Conocidas</label>
-                  <textarea name="alergias" value={formData.alergias} onChange={handleChange}
-                    placeholder="Alergias a productos, sustancias o medicamentos (escriba 'Ninguna' si no aplica)"
-                    className={inputClass + " resize-none"} rows={2} disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Condiciones Médicas Relevantes</label>
-                  <textarea name="condicionesMedicas" value={formData.condicionesMedicas} onChange={handleChange}
-                    placeholder="Diabetes, hipertensión, problemas circulatorios, etc."
-                    className={inputClass + " resize-none"} rows={2} disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Medicación Actual</label>
-                  <textarea name="medicacionActual" value={formData.medicacionActual} onChange={handleChange}
-                    placeholder="Medicamentos que toma regularmente"
-                    className={inputClass + " resize-none"} rows={2} disabled={isLoading} />
-                </div>
-                {/* Solo mostrar para pacientes femeninos */}
-                {formData.sexo === 'FEMENINO' && (
-                  <div>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" name="embarazoLactancia" 
-                        checked={formData.embarazoLactancia} 
-                        onChange={(e) => setFormData({ ...formData, embarazoLactancia: e.target.checked })}
-                        className="w-5 h-5 rounded border-gray-300 text-morena focus:ring-morena"
-                        disabled={isLoading} />
-                      <span className={labelClass + " mb-0"}>¿Embarazo o Lactancia?</span>
-                    </label>
-                  </div>
-                )}
+              <FormField label="Alergias conocidas">
+                <textarea
+                  name="alergias"
+                  value={formData.alergias}
+                  onChange={handleChange}
+                  placeholder="Alergias a productos, sustancias o medicamentos (escribe 'Ninguna' si no aplica)"
+                  className={textareaBase}
+                  rows={2}
+                  disabled={isLoading}
+                />
+              </FormField>
+              <FormField label="Condiciones médicas relevantes">
+                <textarea
+                  name="condicionesMedicas"
+                  value={formData.condicionesMedicas}
+                  onChange={handleChange}
+                  placeholder="Diabetes, hipertensión, problemas circulatorios, etc."
+                  className={textareaBase}
+                  rows={2}
+                  disabled={isLoading}
+                />
+              </FormField>
+              <FormField label="Medicación actual">
+                <textarea
+                  name="medicacionActual"
+                  value={formData.medicacionActual}
+                  onChange={handleChange}
+                  placeholder="Medicamentos que toma regularmente"
+                  className={textareaBase}
+                  rows={2}
+                  disabled={isLoading}
+                />
+              </FormField>
+
+              {formData.sexo === 'FEMENINO' && (
+                <label className="flex items-center gap-3 pt-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="embarazoLactancia"
+                    checked={formData.embarazoLactancia}
+                    onChange={(e) =>
+                      setFormData({ ...formData, embarazoLactancia: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded border-[var(--neutral-300)] text-[var(--brand-morena)] focus:ring-[var(--brand-morena)]"
+                    disabled={isLoading}
+                  />
+                  <span className="text-sm text-[var(--neutral-700)]">
+                    ¿Embarazo o lactancia?
+                  </span>
+                </label>
+              )}
+            </FormSection>
+
+            <FormSection title="Contacto de emergencia">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField label="Nombre completo">
+                  <input
+                    type="text"
+                    name="contactoEmergenciaNombre"
+                    value={formData.contactoEmergenciaNombre}
+                    onChange={handleChange}
+                    placeholder="Nombre del contacto"
+                    className={inputBase}
+                    disabled={isLoading}
+                  />
+                </FormField>
+                <FormField label="Teléfono">
+                  <input
+                    type="tel"
+                    name="contactoEmergenciaTelefono"
+                    value={formData.contactoEmergenciaTelefono}
+                    onChange={handleChange}
+                    placeholder="797..."
+                    className={inputBase}
+                    disabled={isLoading}
+                  />
+                </FormField>
               </div>
+            </FormSection>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Link
+                href="/pacientes"
+                className="inline-flex items-center h-10 px-4 rounded-md border border-[var(--neutral-300)] bg-white text-sm font-medium text-[var(--neutral-700)] hover:bg-[var(--neutral-50)] transition-colors"
+              >
+                Cancelar
+              </Link>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="inline-flex items-center h-10 px-5 rounded-md bg-[var(--brand-morena)] text-white text-sm font-medium hover:bg-[var(--brand-morena-dark)] transition-colors shadow-[var(--shadow-xs)] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Guardando...' : 'Guardar paciente'}
+              </button>
             </div>
-
-            {/* CONTACTO DE EMERGENCIA */}
-            <div className="card p-8 space-y-6">
-              <div>
-                <h2 className="text-2xl font-heading text-morena">Contacto de Emergencia</h2>
-                <hr className="mt-2 border-[#D7C5B9]" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className={labelClass}>Contacto Emergencia - Nombre *</label>
-                  <input type="text" name="contactoEmergenciaNombre" value={formData.contactoEmergenciaNombre}
-                    onChange={handleChange} placeholder="Nombre completo"
-                    className={inputClass} disabled={isLoading} />
-                </div>
-                <div>
-                  <label className={labelClass}>Contacto Emergencia - Teléfono *</label>
-                  <input type="tel" name="contactoEmergenciaTelefono" value={formData.contactoEmergenciaTelefono}
-                    onChange={handleChange} placeholder="797..."
-                    className={inputClass} disabled={isLoading} />
-                </div>
-              </div>
-
-              <hr className="border-[#D7C5B9]" />
-
-              <div className="flex justify-end gap-4">
-                <Link href="/pacientes" className="btn-secondary">Cancelar</Link>
-                <button type="submit" disabled={isLoading} className="btn-primary">
-                  {isLoading ? 'Guardando...' : 'Guardar paciente'}
-                </button>
-              </div>
-            </div>
-
           </form>
         </div>
       </DashboardLayout>

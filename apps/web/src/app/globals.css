@@ -1,295 +1,334 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
   :root {
-    /* Paleta oficial de la clínica */
+    /* ========================================
+       BRAND - Paleta oficial cl\u00ednica
+       ======================================== */
     --brand-piel: #ccaf7d;
     --brand-morena: #754c24;
+    --brand-morena-dark: #5d3b1c;
     --brand-marengo: #666666;
     --brand-concreto: #333333;
     --color-piel: var(--brand-piel);
     --color-morena: var(--brand-morena);
     --color-marengo: var(--brand-marengo);
     --color-concreto: var(--brand-concreto);
-    
-    /* Fondos */
-    --background: 0 0% 100%;
+
+    /* ========================================
+       NEUTRALS - escala c\u00e1lida
+       ======================================== */
+    --neutral-0:  #FFFFFF;
+    --neutral-25: #FDFCFB;   /* canvas */
+    --neutral-50: #FAF7F4;   /* surface muted */
+    --neutral-100: #F3EFEA;
+    --neutral-200: #E8E1DA;  /* borders sutiles */
+    --neutral-300: #D7C5B9;  /* sand */
+    --neutral-400: #B8A99C;
+    --neutral-500: #8B7E73;
+    --neutral-600: #666666;  /* marengo */
+    --neutral-700: #4A4A4A;
+    --neutral-800: #333333;  /* concreto */
+    --neutral-900: #1F1F1F;
+
+    /* ========================================
+       SEM\u00c1NTICOS
+       ======================================== */
+    --semantic-success: #2D7A4F;
+    --semantic-success-bg: #E8F3EC;
+    --semantic-warning: #C77A1F;
+    --semantic-warning-bg: #FBF1E0;
+    --semantic-danger: #B53A3A;
+    --semantic-danger-bg: #FBEAEA;
+    --semantic-info: #2A5F8F;
+    --semantic-info-bg: #E5EFF7;
+
+    /* ========================================
+       SHADCN tokens (hsl)
+       ======================================== */
+    --background: 30 25% 99%;
     --foreground: 0 0% 20%;
-    
-    /* Card */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 20%;
-    
-    /* Popover */
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
-    
-    /* Primary - usando color morena (#754c24) */
     --primary: 24 52% 31%;
     --primary-foreground: 0 0% 100%;
-    
-    /* Secondary - usando color piel (#ccaf7d) */
     --secondary: 37 45% 65%;
     --secondary-foreground: 0 0% 20%;
-    
-    /* Muted */
-    --muted: 0 0% 96%;
+    --muted: 30 15% 96%;
     --muted-foreground: 0 0% 40%;
-    
-    /* Accent - usando color piel (#ccaf7d) */
     --accent: 37 45% 65%;
     --accent-foreground: 0 0% 20%;
-    
-    /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    /* Border, Input, Ring */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 30 20% 90%;
+    --input: 30 20% 90%;
     --ring: 24 52% 31%;
-    
-    /* Charts */
-    --chart-1: 24 52% 31%;
-    --chart-2: 37 45% 65%;
-    --chart-3: 0 0% 40%;
-    --chart-4: 0 0% 20%;
-    --chart-5: 0 0% 60%;
-    
-    /* Border radius */
+
+    /* ========================================
+       SPACING (escala 4px)
+       ======================================== */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+
+    /* ========================================
+       RADIOS
+       ======================================== */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
     --radius: 0.5rem;
+
+    /* ========================================
+       SOMBRAS sutiles
+       ======================================== */
+    --shadow-xs: 0 1px 2px rgba(60, 40, 20, 0.04);
+    --shadow-sm: 0 1px 3px rgba(60, 40, 20, 0.06), 0 1px 2px rgba(60, 40, 20, 0.04);
+    --shadow-md: 0 4px 12px rgba(60, 40, 20, 0.08);
+    --shadow-lg: 0 12px 28px rgba(60, 40, 20, 0.10);
+
+    /* ========================================
+       TIPOGRAF\u00cdA escala
+       ======================================== */
+    --text-2xs: 0.6875rem;  /* 11px */
+    --text-xs: 0.75rem;     /* 12px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-base: 0.9375rem; /* 15px */
+    --text-md: 1rem;        /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.375rem;    /* 22px */
+    --text-2xl: 1.75rem;    /* 28px */
+    --text-3xl: 2.25rem;    /* 36px */
   }
-  
+
   * {
     box-sizing: border-box;
   }
-  
+
   body {
-    background:#FBF9F8;
-    color: #333333;
-    font-family: "Poppins", sans-serif;
+    background: var(--neutral-25);
+    color: var(--neutral-800);
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
     font-weight: 400;
-    line-height: 1.5; /* Reducido de 1.6 para dashboards */
+    font-size: var(--text-base);
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv11";
   }
 
-  /* Line-height más compacto para tablas y listas */
   table, .table-dense {
     line-height: 1.4;
   }
-  
-  /* Tipografía para títulos */
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Playfair Display", serif;
-    font-weight: 600;
-    line-height: 1.2
+    font-family: "Playfair Display", "DM Sans", serif;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--neutral-900);
+  }
+
+  /* Selecci\u00f3n con color de marca */
+  ::selection {
+    background-color: rgba(204, 175, 125, 0.35);
+    color: var(--neutral-900);
   }
 }
+
 @layer components {
-  .text-piel {
-    color: var(--color-piel);
-  }
+  /* ========================================
+     LEGACY color helpers (compat)
+     ======================================== */
+  .text-piel { color: var(--color-piel); }
+  .text-morena { color: var(--color-morena); }
+  .text-concreto { color: var(--color-concreto); }
+  .text-marengo { color: var(--color-marengo); }
+  .text-marengo-muted { color: rgba(102, 102, 102, 0.8); }
 
-  .text-morena {
-    color: var(--color-morena);
-  }
+  .bg-canvas { background-color: var(--neutral-25); }
+  .bg-surface { background-color: var(--neutral-0); }
+  .bg-surface-muted { background-color: var(--neutral-50); }
+  .bg-piel-soft { background-color: rgba(204, 175, 125, 0.12); }
 
-  .text-concreto {
-    color: var(--color-concreto);
-  }
-
-  .text-marengo {
-    color: var(--color-marengo);
-  }
-
-  .text-marengo-muted {
-    color: rgba(102, 102, 102, 0.8);
-  }
-
-  .bg-canvas {
-    background-color: #FBF9F8;
-  }
-
-  .bg-surface {
-    background-color: #FFFFFF;
-  }
-
-  .bg-surface-muted {
-    background-color: #FAF8F6;
-  }
-
-  .bg-piel-soft {
-    background-color: rgba(204, 175, 125, 0.12);
-  }
-
-  .border-sand {
-    border-color: rgba(215, 197, 185, 1);
-  }
-
-  .border-sand-soft {
-    border-color: rgba(215, 197, 185, 0.3);
-  }
-
-  .border-morena {
-    border-color: var(--color-morena);
-  }
+  .border-sand { border-color: var(--neutral-300); }
+  .border-sand-soft { border-color: rgba(215, 197, 185, 0.3); }
+  .border-morena { border-color: var(--color-morena); }
 
   .outline-morena-soft {
-    outline: 2px solid rgba(117, 76, 36, 0.2);
-    outline-offset: 0px;
+    outline: 2px solid rgba(117, 76, 36, 0.18);
+    outline-offset: 0;
   }
 
-
-  /* Botón principal con border-radius consistente */
+  /* ========================================
+     BUTTONS - refinados
+     ======================================== */
   .btn-primary {
-    background-color: #754c24;
-    color: #FEFEFE;
+    background-color: var(--brand-morena);
+    color: var(--neutral-0);
     padding: 0.625rem 1.25rem;
-    border-radius: 0.5rem; /* rounded-lg - consistente */
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.875rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    letter-spacing: 0.02em;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    transition: all 0.2s;
     border: none;
     cursor: pointer;
-    font-weight: 500;
+    transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
 
   .btn-primary:hover {
-    background-color: #654120;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(117, 76, 36, 0.3); /* Sombra más prominente */
+    background-color: var(--brand-morena-dark);
+    box-shadow: var(--shadow-md);
   }
 
-  /* Botón principal destacado (para acciones importantes) */
-  .btn-primary-prominent {
-    background-color: #754c24;
-    color: #FEFEFE;
-    padding: 0.75rem 1.5rem; /* Un poco más grande */
-    border-radius: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.875rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-    border: none;
-    cursor: pointer;
-    font-weight: 600; /* Más peso */
-    box-shadow: 0 2px 8px rgba(117, 76, 36, 0.2); /* Sombra desde el inicio */
-  }
-
-  .btn-primary-prominent:hover {
-    background-color: #654120;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(117, 76, 36, 0.4); /* Sombra muy prominente */
+  .btn-primary:active {
+    transform: translateY(1px);
   }
 
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
   }
 
-  .btn-secondary {
-    background-color: transparent;
-    color: #754c24;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.5rem; /* rounded-lg - consistente */
-    border: 2px solid #754c24;
+  .btn-primary-prominent {
+    background-color: var(--brand-morena);
+    color: var(--neutral-0);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.875rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    transition: all 0.2s;
+    border: none;
     cursor: pointer;
-    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s ease;
   }
 
-  .btn-secondary:hover {
-    background-color: #754c24;
-    color: #FEFEFE;
+  .btn-primary-prominent:hover {
+    background-color: var(--brand-morena-dark);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-1px);
   }
 
-  /* Sidebar */
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--brand-morena);
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--neutral-300);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--brand-morena);
+    color: var(--neutral-0);
+    border-color: var(--brand-morena);
+  }
+
+  /* ========================================
+     SIDEBAR - refinado
+     ======================================== */
   .sidebar {
-    background-color: #F8F6F3;
-    border-right: 1px solid #e7e5e4; /* stone-200 */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    background-color: var(--neutral-50);
+    border-right: 1px solid var(--neutral-200);
   }
 
   .sidebar-nav-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s;
-    color: var(--color-concreto);
-    font-size: 1.125rem;
-    border-left: 3px solid transparent; /* Espacio para borde activo */
-    margin-left: -3px; /* Compensar el borde */
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-md);
+    transition: background-color 0.15s, color 0.15s;
+    color: var(--neutral-700);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    position: relative;
   }
 
   .sidebar-nav-item:hover {
-    background-color: rgba(204, 175, 125, 0.1); /* Más sutil */
-    color: var(--color-morena);
+    background-color: rgba(204, 175, 125, 0.10);
+    color: var(--brand-morena);
   }
 
   .sidebar-nav-item.active {
-    background-color: rgba(117, 76, 36, 0.08); /* Fondo muy sutil */
-    color: var(--color-morena);
-    font-weight: 600; /* Más peso en texto */
-    border-left-color: var(--color-morena); /* Borde activo prominente */
+    background-color: rgba(117, 76, 36, 0.08);
+    color: var(--brand-morena);
+    font-weight: 600;
+  }
+
+  .sidebar-nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background-color: var(--brand-morena);
+    border-radius: 0 2px 2px 0;
   }
 
   .sidebar-nav-item.active svg {
-    stroke-width: 2; /* Iconos más gruesos cuando activo */
+    stroke-width: 2;
   }
 
-  /* Clase para tarjetas con borde sutil */
+  /* ========================================
+     CARDS
+     ======================================== */
   .card {
-    background: white;
-    border-radius: 0.75rem; /* rounded-xl */
-    border: 1px solid rgba(215, 197, 185, 0.3); /* color arena sutil */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* sombra muy suave */
-    padding: 1.5rem; /* Más padding para dar aire */
-    transition: box-shadow 0.2s ease;
+    background: var(--neutral-0);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--neutral-200);
+    padding: 1.5rem;
+    transition: border-color 0.15s ease;
   }
 
   .card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--neutral-300);
   }
 
-  /* Card sin padding extra (para tablas) */
-  .card-no-padding {
-    padding: 0;
-  }
+  .card-no-padding { padding: 0; }
 
-  /* Contenedor de formulario con ancho máximo */
+  /* ========================================
+     FORMULARIOS - layout
+     ======================================== */
   .form-container {
-    max-width: 56rem; /* 896px - ancho óptimo para lectura */
+    max-width: 56rem;
     margin-left: auto;
     margin-right: auto;
   }
 
-  /* Input fields con ancho máximo */
-  .form-field-limited {
-    max-width: 32rem; /* 512px - evita campos muy anchos */
-  }
+  .form-field-limited { max-width: 32rem; }
 
-  /* Grid de 2 columnas para formularios */
   .form-grid-2 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -297,18 +336,46 @@
   }
 
   @media (max-width: 768px) {
-    .form-grid-2 {
-      grid-template-columns: 1fr; /* Una columna en móvil */
-    }
+    .form-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ========================================
+     UTILIDADES SEM\u00c1NTICAS
+     ======================================== */
+  .text-success { color: var(--semantic-success); }
+  .text-warning { color: var(--semantic-warning); }
+  .text-danger { color: var(--semantic-danger); }
+  .text-info { color: var(--semantic-info); }
+
+  .bg-success-soft { background-color: var(--semantic-success-bg); }
+  .bg-warning-soft { background-color: var(--semantic-warning-bg); }
+  .bg-danger-soft { background-color: var(--semantic-danger-bg); }
+  .bg-info-soft { background-color: var(--semantic-info-bg); }
+
+  /* ========================================
+     OVERLINE - etiquetas peque\u00f1as
+     ======================================== */
+  .overline {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutral-500);
   }
 }
 
 @layer base {
   input, select, textarea {
-    border-color: #D7C5B9 !important;
+    border-color: var(--neutral-300) !important;
+    font-family: inherit;
   }
-}
-@layer base {
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--brand-morena) !important;
+    box-shadow: 0 0 0 3px rgba(117, 76, 36, 0.12);
+  }
+
   select {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23754c24' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -318,18 +385,11 @@
     cursor: pointer;
   }
 
-  select:focus {
-    border-color: var(--color-morena) !important;
-    outline: 2px solid rgba(117, 76, 36, 0.2);
-    outline-offset: 0px;
-  }
-}
-@layer base {
   input[type="date"] {
     color-scheme: light;
     cursor: pointer;
   }
-  
+
   input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.6;
     filter: invert(30%) sepia(50%) saturate(500%) hue-rotate(350deg);

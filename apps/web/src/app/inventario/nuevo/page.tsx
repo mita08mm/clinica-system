@@ -4,13 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiEndpoint } from '@/lib/config';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
+import { api } from '@/lib/api';
 import Link from 'next/link';
+
+const inputBase =
+  'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors disabled:bg-[var(--neutral-50)]';
+const textareaBase =
+  'w-full px-3 py-2.5 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors resize-none';
 
 export default function NuevoProductoPage() {
   const router = useRouter();
-  const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,21 +76,7 @@ export default function NuevoProductoPage() {
         descripcion: formData.descripcion.trim() || undefined,
       };
 
-      const response = await fetch(apiEndpoint('/productos'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const  data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Error al crear producto');
-      }
-
+      await api.post('/productos', payload);
       router.push('/inventario');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -100,179 +91,145 @@ export default function NuevoProductoPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-3xl space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <Link href="/inventario" className="text-marengo hover:text-concreto">
-              ← Volver
-            </Link>
-            <div>
-              <h1 className="text-3xl font-heading font-bold text-concreto">Nuevo Producto</h1>
-              <p className="text-marengo mt-1">Agregar producto al inventario</p>
+        <div className="max-w-3xl">
+          <PageHeader
+            overline="Inventario"
+            title="Nuevo producto"
+            subtitle="Agrega un producto al inventario con su stock inicial y alerta de reposición"
+            backHref="/inventario"
+          />
+
+          {error && (
+            <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
             </div>
-          </div>
+          )}
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} className="card p-8">
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">{error}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Nombre */}
-              <div className="md:col-span-2">
-                <label className={labelClass}>
-                  Nombre del Producto <span className="text-red-500">*</span>
-                </label>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FormSection title="Información del producto">
+              <FormField label="Nombre del producto" required>
                 <input
                   type="text"
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  className={inputClass}
-                  placeholder="Ej: Ácido Hialurónico 2%"
+                  className={inputBase}
+                  placeholder="Ej. Ácido hialurónico 2%"
                   required
                 />
+              </FormField>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Tipo de producto" required>
+                  <select
+                    name="tipo"
+                    value={formData.tipo}
+                    onChange={handleChange}
+                    className={inputBase}
+                    required
+                  >
+                    <option value="COSMECEUTICO">Cosmecéutico</option>
+                    <option value="DERMOCOSMETICO">Dermocosmético</option>
+                    <option value="EQUIPO">Equipo</option>
+                    <option value="INSUMO">Insumo</option>
+                  </select>
+                </FormField>
+
+                <FormField label="Unidad de medida" required>
+                  <select
+                    name="unidad"
+                    value={formData.unidad}
+                    onChange={handleChange}
+                    className={inputBase}
+                    required
+                  >
+                    <option value="unidad">Unidad</option>
+                    <option value="ml">Mililitro (ml)</option>
+                    <option value="gr">Gramo (gr)</option>
+                    <option value="ampolla">Ampolla</option>
+                    <option value="vial">Vial</option>
+                    <option value="caja">Caja</option>
+                    <option value="paquete">Paquete</option>
+                  </select>
+                </FormField>
               </div>
 
-              {/* Tipo */}
-              <div>
-                <label className={labelClass}>
-                  Tipo de Producto <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="tipo"
-                  value={formData.tipo}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                >
-                  <option value="COSMECEUTICO">Cosmecéutico</option>
-                  <option value="DERMOCOSMETICO">Dermocosmético</option>
-                  <option value="EQUIPO">Equipo</option>
-                  <option value="INSUMO">Insumo</option>
-                </select>
-              </div>
-
-              {/* Unidad */}
-              <div>
-                <label className={labelClass}>
-                  Unidad de Medida <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="unidad"
-                  value={formData.unidad}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                >
-                  <option value="unidad">Unidad</option>
-                  <option value="ml">Mililitro (ml)</option>
-                  <option value="gr">Gramo (gr)</option>
-                  <option value="ampolla">Ampolla</option>
-                  <option value="vial">Vial</option>
-                  <option value="caja">Caja</option>
-                  <option value="paquete">Paquete</option>
-                </select>
-              </div>
-
-              {/* Precio */}
-              <div>
-                <label className={labelClass}>
-                  Precio Unitario (Bs.) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="precio"
-                  value={formData.precio}
-                  onChange={handleChange}
-                  className={inputClass}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  required
-                />
-              </div>
-
-              {/* Stock Inicial */}
-              <div>
-                <label className={labelClass}>
-                  Stock Inicial <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleChange}
-                  className={inputClass}
-                  placeholder="0"
-                  min="0"
-                  required
-                />
-              </div>
-
-              {/* Stock Mínimo */}
-              <div>
-                <label className={labelClass}>
-                  Stock Mínimo (Alerta) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="stockMinimo"
-                  value={formData.stockMinimo}
-                  onChange={handleChange}
-                  className={inputClass}
-                  placeholder="5"
-                  min="0"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Recibirás una alerta cuando el stock sea menor o igual a este valor
-                </p>
-              </div>
-
-              {/* Descripción */}
-              <div className="md:col-span-2">
-                <label className={labelClass}>Descripción (Opcional)</label>
+              <FormField label="Descripción">
                 <textarea
                   name="descripcion"
                   value={formData.descripcion}
                   onChange={handleChange}
-                  className={inputClass}
+                  className={textareaBase}
                   rows={3}
                   placeholder="Información adicional del producto..."
                 />
-              </div>
-            </div>
+              </FormField>
+            </FormSection>
 
-            {/* Botones */}
-            <div className="flex gap-4 mt-8">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 px-6 py-3 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Guardando...' : 'Guardar Producto'}
-              </button>
+            <FormSection title="Precio y stock">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField label="Precio unitario (Bs.)" required>
+                  <input
+                    type="number"
+                    name="precio"
+                    value={formData.precio}
+                    onChange={handleChange}
+                    className={inputBase}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </FormField>
+
+                <FormField label="Stock inicial" required>
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleChange}
+                    className={inputBase}
+                    placeholder="0"
+                    min="0"
+                    required
+                  />
+                </FormField>
+
+                <FormField
+                  label="Stock mínimo"
+                  required
+                  hint="Recibirás una alerta cuando el stock llegue a este valor"
+                >
+                  <input
+                    type="number"
+                    name="stockMinimo"
+                    value={formData.stockMinimo}
+                    onChange={handleChange}
+                    className={inputBase}
+                    placeholder="5"
+                    min="0"
+                    required
+                  />
+                </FormField>
+              </div>
+            </FormSection>
+
+            <div className="flex items-center justify-end gap-3">
               <Link
                 href="/inventario"
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-center"
+                className="h-10 px-4 inline-flex items-center rounded-md border border-[var(--neutral-300)] text-sm font-medium text-[var(--neutral-700)] hover:bg-[var(--neutral-50)] transition-colors"
               >
                 Cancelar
               </Link>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? 'Guardando...' : 'Guardar producto'}
+              </button>
             </div>
           </form>
-
-          {/* Tarjeta informativa */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">💡 Consejo</h3>
-            <p className="text-xs text-blue-800">
-              Mantén el stock mínimo en un valor que te permita realizar pedidos sin quedarte sin producto.
-              Por ejemplo, si un producto se vende rápido, establece un stock mínimo mayor.
-            </p>
-          </div>
         </div>
       </DashboardLayout>
     </ProtectedRoute>

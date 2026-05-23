@@ -1,47 +1,56 @@
-import { Card, CardContent } from "@/components/ui";
 import { Tratamiento } from "@/types/historia";
 
 interface TratamientosListProps {
   tratamientos: Tratamiento[];
 }
 
-export default function TratamientosList({
-  tratamientos,
-}: TratamientosListProps) {
+export default function TratamientosList({ tratamientos }: TratamientosListProps) {
   return (
-    <section className="card space-y-5">
-      <div className="border-b border-stone-100 pb-4">
-        <h4 className="text-lg font-heading text-concreto">Historial medico</h4>
-      </div>
+    <section>
+      <header className="mb-5 flex items-baseline justify-between">
+        <h2 className="font-heading text-xl font-medium text-[var(--neutral-900)]">
+          Historial clínico
+        </h2>
+        <span className="overline">{tratamientos.length} {tratamientos.length === 1 ? 'consulta' : 'consultas'}</span>
+      </header>
 
-      {tratamientos.map((tratamiento) => {
-        return (
-          <article key={tratamiento.id} className="relative">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardContent className="px-6 py-5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-marengo/70">
-                  {formatDate(tratamiento.fecha)}
-                </p>
-     
-                <h3 className="mt-3 text-xl font-heading text-concreto">
-                  {tratamiento.nombreTratamiento}
+      <ol className="relative space-y-5 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-[var(--neutral-200)]">
+        {tratamientos.map((t) => (
+          <li key={t.id} className="relative pl-7">
+            <span className="absolute left-0 top-3.5 h-[15px] w-[15px] rounded-full border-[3px] border-white bg-[var(--brand-morena)] shadow-[var(--shadow-xs)]" />
+            <article className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white overflow-hidden hover:border-[var(--neutral-300)] transition-colors">
+              <header className="flex items-baseline justify-between gap-4 px-5 py-3 border-b border-[var(--neutral-100)] bg-[var(--neutral-25)]">
+                <h3 className="font-heading text-base font-medium text-[var(--neutral-900)] truncate">
+                  {t.nombreTratamiento}
                 </h3>
-
-                <div className="mt-5 space-y-4 text-sm text-marengo">
-                  <Field label="Tipo de tratamiento" value={formatTipo(tratamiento.tipoTratamiento)} />
-                  <Field label="Zona tratada" value={tratamiento.zonaTratada} />
-                  <Field label="Objetivo" value={tratamiento.objetivo} />
-                  <Field label="Nota clínica" value={tratamiento.evaluacionInicial} />
-                  <Field label="Procedimiento" value={tratamiento.protocolo} />
-                  <Field label="Observaciones" value={tratamiento.observaciones} />
-                  <Field label="Próxima consulta" value={formatOptionalDate(tratamiento.proximaSesion)} />
-                </div>
-              </CardContent>
-            </Card>
-          </article>
-        );
-      })}
+                <time className="shrink-0 text-[11px] uppercase tracking-wider text-[var(--neutral-500)] font-medium">
+                  {formatDate(t.fecha)}
+                </time>
+              </header>
+              <div className="px-5 py-4 grid gap-3 sm:grid-cols-2">
+                <Field label="Tipo" value={formatTipo(t.tipoTratamiento)} />
+                <Field label="Zona tratada" value={t.zonaTratada} />
+                <Field label="Objetivo" value={t.objetivo} wide />
+                <Field label="Nota clínica" value={t.evaluacionInicial} wide />
+                <Field label="Procedimiento" value={t.protocolo} wide />
+                <Field label="Observaciones" value={t.observaciones} wide />
+                <Field label="Próxima consulta" value={formatOptionalDate(t.proximaSesion)} />
+              </div>
+            </article>
+          </li>
+        ))}
+      </ol>
     </section>
+  );
+}
+
+function Field({ label, value, wide }: { label: string; value?: string; wide?: boolean }) {
+  if (!value) return null;
+  return (
+    <div className={wide ? 'sm:col-span-2' : ''}>
+      <p className="overline">{label}</p>
+      <p className="mt-1 text-sm leading-relaxed text-[var(--neutral-800)]">{value}</p>
+    </div>
   );
 }
 
@@ -53,17 +62,6 @@ function formatDate(date: string) {
   });
 }
 
-function Field({ label, value }: { label: string; value?: string }) {
-  if (!value) return null;
-
-  return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-marengo/70">{label}</p>
-      <p className="mt-1.5 leading-relaxed text-concreto">{value}</p>
-    </div>
-  );
-}
-
 function formatTipo(tipo: Tratamiento['tipoTratamiento']) {
   const labels: Record<Tratamiento['tipoTratamiento'], string> = {
     FACIAL: 'Facial',
@@ -71,13 +69,11 @@ function formatTipo(tipo: Tratamiento['tipoTratamiento']) {
     CAPILAR: 'Capilar',
     COMBINADO: 'Combinado',
   };
-
   return labels[tipo];
 }
 
 function formatOptionalDate(date?: string) {
   if (!date) return undefined;
-
   return new Date(date).toLocaleDateString('es-BO', {
     day: '2-digit',
     month: 'short',

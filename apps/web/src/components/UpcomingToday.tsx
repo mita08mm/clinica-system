@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiEndpoint } from '@/lib/config';
+import { api } from '@/lib/api';
 import EditIcon from '@/components/icons/EditIcon';
 import TrashIcon from '@/components/icons/TrashIcon';
 
@@ -117,7 +116,6 @@ export default function UpcomingToday({ citas, onCitaEliminada, onCitaActualizad
   }, {});
 
   const diasOrdenados = Object.keys(agrupadasPorDia).sort();
-  const { token } = useAuth();
 
   // ── Estados para la eliminación ─────────────────────────────────────────
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
@@ -130,18 +128,11 @@ export default function UpcomingToday({ citas, onCitaEliminada, onCitaActualizad
     setErrorEliminar('');
   };
   const handleEliminar = async () => {
-    if (!citaSeleccionada || !token) return;
+    if (!citaSeleccionada) return;
     setEliminando(true);
     setErrorEliminar('');
     try {
-      const response = await fetch(apiEndpoint(`/citas/${citaSeleccionada.id}`), {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al eliminar la cita');
-      }
+      await api.delete(`/citas/${citaSeleccionada.id}`);
       onCitaEliminada(citaSeleccionada.id); // actualiza el estado del padre
       cerrarDetalle();
     } catch (err) {

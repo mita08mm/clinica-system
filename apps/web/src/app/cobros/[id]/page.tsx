@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Link from 'next/link';
-import { apiEndpoint } from '@/lib/config';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { api } from '@/lib/api';
 
 interface Paciente {
   id: string;
@@ -27,49 +26,30 @@ interface Cobro {
 
 export default function CobroDetailPage() {
   const params = useParams();
-  const { token } = useAuth();
   const [cobro, setCobro] = useState<Cobro | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!token) return;
-    
     let mounted = true;
-    
+
     const loadCobro = async () => {
       try {
-        const response = await fetch(apiEndpoint(`/cobros/${params.id}`), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al cargar el cobro');
-        }
-
-        const data = await response.json();
-        if (mounted) {
-          setCobro(data.data);
-        }
+        const data = await api.get<Cobro>(`/cobros/${params.id}`);
+        if (mounted) setCobro(data);
       } catch (err) {
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Error desconocido');
-        }
+        if (mounted) setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+        if (mounted) setIsLoading(false);
       }
     };
-    
+
     loadCobro();
-    
+
     return () => {
       mounted = false;
     };
-  }, [token, params.id]);
+  }, [params.id]);
 
   const formatFecha = (fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
@@ -90,11 +70,8 @@ export default function CobroDetailPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="flex justify-center items-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-lg h-12 w-12 border-b-2 border-morena mx-auto mb-4"></div>
-              <p className="text-marengo">Cargando cobro...</p>
-            </div>
+          <div className="flex justify-center items-center min-h-[400px] text-sm text-[var(--neutral-500)]">
+            Cargando cobro...
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -105,8 +82,8 @@ export default function CobroDetailPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+            {error}
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -117,77 +94,126 @@ export default function CobroDetailPage() {
 
   const abonado = cobro.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
   const pendiente = Math.max(Number(cobro.total) - abonado, 0);
+  const totalNum = Number(cobro.total);
+  const porcentajeAbonado = totalNum > 0 ? Math.min((abonado / totalNum) * 100, 100) : 0;
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-5xl space-y-6">
-          <div className="flex items-center gap-4">
-            <Link href="/cobros" className="text-marengo hover:text-concreto">
-              ← Volver
-            </Link>
-            <div>
-              <h1 className="text-3xl font-heading font-bold text-concreto">
-                Registro de cobro
-              </h1>
-              <p className="text-marengo mt-1">
-                {formatFecha(cobro.fecha)}
-              </p>
-            </div>
-          </div>
+        <div className="max-w-4xl">
+          <PageHeader
+            overline="Cobros"
+            title="Registro de cobro"
+            subtitle={formatFecha(cobro.fecha)}
+            backHref="/cobros"
+          />
 
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
             </div>
           )}
 
-          {/* Información del paciente */}
-          <div className="card p-8">
-            <h2 className="text-xl font-heading font-bold text-concreto mb-4">
-              Paciente
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-marengo">Nombre</p>
-                <p className="text-lg font-medium text-concreto">
-                  {cobro.paciente.nombre} {cobro.paciente.apellido}
-                </p>
+          <div className="space-y-5">
+            <section className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-6">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-500)] mb-3">
+                Paciente
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <p className="text-xs text-[var(--neutral-500)]">Nombre</p>
+                  <p className="mt-0.5 text-base font-medium text-[var(--neutral-900)]">
+                    {cobro.paciente.nombre} {cobro.paciente.apellido}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--neutral-500)]">Documento</p>
+                  <p className="mt-0.5 text-base font-medium text-[var(--neutral-900)]">
+                    {cobro.paciente.tipoDocumento}: {cobro.paciente.documento}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-marengo">Documento</p>
-                <p className="text-lg font-medium text-concreto">
-                  {cobro.paciente.tipoDocumento}: {cobro.paciente.documento}
-                </p>
-              </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="card p-8">
-            <h2 className="text-xl font-heading font-bold text-concreto mb-4">
-              Resumen
-            </h2>
-            <div className="space-y-4 rounded-lg border border-marengo/20 p-6">
+            <section className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-6">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-500)] mb-3">
+                Detalle
+              </p>
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-marengo/70">Descripción o título</p>
-                <p className="mt-1 text-lg font-medium text-concreto">{buildCobroTitle(cobro)}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-marengo/70">Monto</p>
-                <p className="mt-1 text-lg font-medium text-concreto">{formatMonto(Number(cobro.total))}</p>
+                <p className="text-xs text-[var(--neutral-500)]">Descripción</p>
+                <p className="mt-0.5 text-base font-medium text-[var(--neutral-900)]">{buildCobroTitle(cobro)}</p>
               </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-marengo/70">Abonado</p>
-                <p className="mt-1 text-lg font-medium text-concreto">{formatMonto(abonado)}</p>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-md bg-[var(--neutral-50)] border border-[var(--neutral-100)] px-4 py-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-500)]">Monto total</p>
+                  <p className="font-heading text-xl font-medium text-[var(--neutral-900)] mt-1 tabular-nums">
+                    {formatMonto(totalNum)}
+                  </p>
+                </div>
+                <div className="rounded-md bg-[var(--semantic-success-bg)] border border-[rgba(58,138,79,0.18)] px-4 py-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--semantic-success)]">Abonado</p>
+                  <p className="font-heading text-xl font-medium text-[var(--semantic-success)] mt-1 tabular-nums">
+                    {formatMonto(abonado)}
+                  </p>
+                </div>
+                <div className={`rounded-md px-4 py-3 border ${
+                  pendiente > 0
+                    ? 'bg-[var(--semantic-danger-bg)] border-[rgba(181,58,58,0.18)]'
+                    : 'bg-[var(--neutral-50)] border-[var(--neutral-100)]'
+                }`}>
+                  <p className={`text-[11px] font-medium uppercase tracking-wider ${pendiente > 0 ? 'text-[var(--semantic-danger)]' : 'text-[var(--neutral-500)]'}`}>
+                    Pendiente
+                  </p>
+                  <p className={`font-heading text-xl font-medium mt-1 tabular-nums ${pendiente > 0 ? 'text-[var(--semantic-danger)]' : 'text-[var(--neutral-700)]'}`}>
+                    {formatMonto(pendiente)}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-marengo/70">Pendiente</p>
-                <p className="mt-1 text-lg font-medium text-red-600">{formatMonto(pendiente)}</p>
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-[var(--neutral-600)]">Progreso de cobro</span>
+                  <span className="text-xs font-medium text-[var(--neutral-700)] tabular-nums">
+                    {porcentajeAbonado.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="w-full bg-[var(--neutral-100)] rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-[var(--brand-morena)] h-2 rounded-full transition-all"
+                    style={{ width: `${porcentajeAbonado}%` }}
+                  />
+                </div>
               </div>
-            </div>
+            </section>
+
+            {cobro.pagos.length > 0 && (
+              <section className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--neutral-100)]">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-500)]">
+                    Historial de pagos
+                  </p>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-[var(--neutral-50)] border-b border-[var(--neutral-100)]">
+                    <tr>
+                      <th className="px-6 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Fecha</th>
+                      <th className="px-6 py-2.5 text-right text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--neutral-100)]">
+                    {cobro.pagos.map((pago) => (
+                      <tr key={pago.id}>
+                        <td className="px-6 py-3 text-sm text-[var(--neutral-700)]">{formatFecha(pago.fecha)}</td>
+                        <td className="px-6 py-3 text-right text-sm font-medium text-[var(--neutral-900)] tabular-nums">
+                          {formatMonto(Number(pago.monto))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
           </div>
         </div>
       </DashboardLayout>

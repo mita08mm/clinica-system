@@ -1,14 +1,19 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiEndpoint } from '@/lib/config';
+import { api, ApiError } from '@/lib/api';
 
 interface Usuario {
   id: string;
   email: string;
   nombre: string;
   rol: string;
+}
+
+interface LoginResponse {
+  token: string;
+  usuario: Usuario;
 }
 
 interface AuthContextType {
@@ -20,6 +25,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const TOKEN_KEY = 'token';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -28,82 +34,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
     const verifyToken = async () => {
-      const storedToken = localStorage.getItem('token');
-      
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+
       if (!storedToken) {
-        if (isMounted) setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(apiEndpoint('/auth/me'), {
-          headers: {
-            'Authorization': `Bearer ${storedToken}`,
-          },
-        });
-
-        if (response.ok && isMounted) {
-          const data = await response.json();
-          setUsuario(data.data);
+        const data = await api.get<Usuario>('/auth/me');
+        if (!cancelled) {
+          setUsuario(data);
           setToken(storedToken);
-        } else if (isMounted) {
-          localStorage.removeItem('token');
         }
       } catch (error) {
-        console.error('Error verificando token:', error);
-        if (isMounted) {
-          localStorage.removeItem('token');
+        if (error instanceof ApiError && error.status !== 401) {
+          console.error('Error verificando token:', error);
+        }
+        if (!cancelled) {
+          localStorage.removeItem(TOKEN_KEY);
         }
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     verifyToken();
-
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch(apiEndpoint('/auth/login'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const data = await api.post<LoginResponse>(
+        '/auth/login',
+        { email, password },
+        { skipAuth: true }
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al iniciar sesion');
-      }
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+      setUsuario(data.usuario);
 
-      const data = await response.json();
-      
-      setToken(data.data.token);
-      setUsuario(data.data.usuario);
-      localStorage.setItem('token', data.data.token);
-      
       router.push('/pacientes');
-    } catch (error) {
-      throw error;
-    }
-  };
+    },
+    [router]
+  );
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUsuario(null);
     setToken(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
     router.push('/login');
-  };
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ usuario, token, login, logout, isLoading }}>

@@ -1,12 +1,21 @@
 'use client';
+
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Link from 'next/link';
-import { apiEndpoint } from '@/lib/config';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
+import { api } from '@/lib/api';
 import DatePicker from '@/components/ui/DatePicker';
+
+const inputBase =
+  'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors disabled:bg-[var(--neutral-50)]';
+const textareaBase =
+  'w-full px-3 py-2.5 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors resize-none disabled:bg-[var(--neutral-50)]';
+const inputConflict =
+  'w-full h-10 px-3 rounded-md border border-[var(--semantic-warning)] bg-[var(--semantic-warning-bg)] text-sm text-[var(--neutral-800)] focus:outline-none focus:ring-[3px] focus:ring-[rgba(196,135,40,0.18)] transition-colors';
 
 interface Paciente {
   id: string;
@@ -27,6 +36,15 @@ interface CitaDelDia {
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
+const ESTADO_OPTIONS = [
+  { value: 'PROGRAMADA', label: 'Programada' },
+  { value: 'CONFIRMADA', label: 'Confirmada' },
+  { value: 'EN_CURSO', label: 'En curso' },
+  { value: 'COMPLETADA', label: 'Completada' },
+  { value: 'CANCELADA', label: 'Cancelada' },
+  { value: 'NO_ASISTIO', label: 'No asistió' },
+];
+
 function toMinutes(hora: string): number {
   if (!hora) return 0;
   const [h, m] = hora.split(':').map(Number);
@@ -40,9 +58,8 @@ function FormularioEditarCita() {
   const router = useRouter();
   const params = useParams();
   const citaId = params.id as string;
-  const { token } = useAuth();
 
-  const [isFetching, setIsFetching] = useState(true);  // carga inicial
+  const [isFetching, setIsFetching] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -63,25 +80,19 @@ function FormularioEditarCita() {
     notas: '',
   });
 
-  // ── 1. Cargar datos de la cita ───────────────────────────────────────────
   useEffect(() => {
-    if (!token || !citaId) return;
+    if (!citaId) return;
     const loadCita = async () => {
       try {
-        const response = await fetch(apiEndpoint(`/citas/${citaId}`), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('No se pudo cargar la cita');
-        const data = await response.json();
-        const c = data.data ?? data;
+        const c = await api.get<Record<string, string>>(`/citas/${citaId}`);
         setFormData({
-          pacienteId:  c.pacienteId ?? '',
-          fecha:       c.fecha?.split('T')[0] ?? '',
-          horaInicio:  c.horaInicio?.slice(0, 5) ?? '',
-          horaFin:     c.horaFin?.slice(0, 5) ?? '',
-          motivo:      c.motivo ?? '',
-          estado:      c.estado ?? 'PROGRAMADA',
-          notas:       c.notas ?? '',
+          pacienteId: c.pacienteId ?? '',
+          fecha: c.fecha?.split('T')[0] ?? '',
+          horaInicio: c.horaInicio?.slice(0, 5) ?? '',
+          horaFin: c.horaFin?.slice(0, 5) ?? '',
+          motivo: c.motivo ?? '',
+          estado: c.estado ?? 'PROGRAMADA',
+          notas: c.notas ?? '',
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar la cita');
@@ -90,47 +101,34 @@ function FormularioEditarCita() {
       }
     };
     loadCita();
-  }, [token, citaId]);
+  }, [citaId]);
 
-  // ── 2. Cargar pacientes ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!token) return;
     const fetchPacientes = async () => {
       try {
-        const response = await fetch(apiEndpoint('/pacientes'), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        setPacientes(data.data.filter((p: Paciente) => p.estado === 'ACTIVO'));
-      } catch { /* silencioso */ }
+        const data = await api.get<Paciente[]>('/pacientes');
+        setPacientes(data.filter((p) => p.estado === 'ACTIVO'));
+      } catch { /* noop */ }
       finally { setLoadingPacientes(false); }
     };
     fetchPacientes();
-  }, [token]);
+  }, []);
 
-  // ── 3. Cargar citas del día (excluyendo la que estamos editando) ─────────
   useEffect(() => {
-    if (!token || !formData.fecha) return;
+    if (!formData.fecha) return;
     const fetchCitasDelDia = async () => {
       setLoadingCitas(true);
       try {
-        const response = await fetch(apiEndpoint(`/citas?fecha=${formData.fecha}`), {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        const citasValidas = (data.data as CitaDelDia[]).filter(
-          c => c.estado !== 'CANCELADA' &&
-               toMinutes(c.horaInicio) >= 6 * 60 &&
-               c.id !== citaId  // ← excluye la cita actual del detector
+        const data = await api.get<CitaDelDia[]>('/citas', { params: { fecha: formData.fecha } });
+        const citasValidas = data.filter(
+          (c) => c.estado !== 'CANCELADA' && toMinutes(c.horaInicio) >= 6 * 60 && c.id !== citaId
         );
         setCitasDelDia(citasValidas);
       } catch { setCitasDelDia([]); }
       finally { setLoadingCitas(false); }
     };
     fetchCitasDelDia();
-  }, [token, formData.fecha, citaId]);
+  }, [formData.fecha, citaId]);
 
   const actualizarFechaLabel = useCallback((fechaString: string) => {
     if (!fechaString) { setFechaLabel(''); return; }
@@ -147,13 +145,12 @@ function FormularioEditarCita() {
     }
   }, [formData.fecha, actualizarFechaLabel]);
 
-  // Detector de conflicto en tiempo real
   useEffect(() => {
     if (!formData.horaInicio || !formData.horaFin || citasDelDia.length === 0) {
       setConflicto(null);
       return;
     }
-    const cita = citasDelDia.find(c =>
+    const cita = citasDelDia.find((c) =>
       hayConflicto(formData.horaInicio, formData.horaFin, c.horaInicio, c.horaFin)
     );
     setConflicto(cita || null);
@@ -162,31 +159,21 @@ function FormularioEditarCita() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setError('');
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (name === 'fecha') actualizarFechaLabel(value);
   };
 
-  // ── 4. Submit usa PUT ────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (conflicto) return;
     setError('');
     setIsLoading(true);
     try {
-      const response = await fetch(apiEndpoint(`/citas/${citaId}`), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          horaInicio: formData.horaInicio.slice(0, 5),
-          horaFin: formData.horaFin.slice(0, 5),
-        }),
+      await api.put(`/citas/${citaId}`, {
+        ...formData,
+        horaInicio: formData.horaInicio.slice(0, 5),
+        horaFin: formData.horaFin.slice(0, 5),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || data.message || 'Error al actualizar la cita');
       router.push('/citas');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -195,242 +182,237 @@ function FormularioEditarCita() {
     }
   };
 
-  // Spinner mientras carga la cita
   if (isFetching) {
     return (
-      <div className="card p-8 text-center max-w-3xl">
-        <div className="w-12 h-12 border-4 border-piel border-t-morena rounded-lg animate-spin mx-auto" />
-        <p className="text-marengo mt-4">Cargando datos de la cita...</p>
+      <div className="flex items-center justify-center min-h-[400px] text-sm text-[var(--neutral-500)]">
+        Cargando datos de la cita...
       </div>
     );
   }
 
   const TIMELINE_START = 7 * 60;
-  const TIMELINE_END   = 21 * 60;
+  const TIMELINE_END = 21 * 60;
   const TIMELINE_TOTAL = TIMELINE_END - TIMELINE_START;
   const pct = (min: number) => Math.max(0, Math.min(100, ((min - TIMELINE_START) / TIMELINE_TOTAL) * 100));
   const nuevaInicioMin = toMinutes(formData.horaInicio);
-  const nuevaFinMin    = toMinutes(formData.horaFin);
-  const nuevaValida    = formData.horaInicio && formData.horaFin && nuevaFinMin > nuevaInicioMin;
-
-  const ESTADO_OPTIONS = [
-    { value: 'PROGRAMADA', label: 'Pendiente' },
-    { value: 'CONFIRMADA', label: 'Confirmada' },
-    { value: 'EN_CURSO',   label: 'En curso' },
-    { value: 'COMPLETADA', label: 'Completada' },
-    { value: 'CANCELADA',  label: 'Cancelada' },
-    { value: 'NO_ASISTIO', label: 'No asistió' },
-  ];
+  const nuevaFinMin = toMinutes(formData.horaFin);
+  const nuevaValida = formData.horaInicio && formData.horaFin && nuevaFinMin > nuevaInicioMin;
 
   return (
-    <div className="max-w-3xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/citas" className="text-marengo hover:text-concreto">← Volver</Link>
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-concreto">Editar Cita</h1>
-          <p className="text-marengo mt-1">Modifica los datos de la cita</p>
-        </div>
-      </div>
+    <div className="max-w-4xl">
+      <PageHeader
+        overline="Citas"
+        title="Editar cita"
+        subtitle="Modifica los datos de la cita verificando disponibilidad"
+        backHref="/citas"
+      />
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600 font-medium">{error}</p>
+        <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+          {error}
         </div>
       )}
 
       {conflicto && (
-        <div className="relative overflow-hidden rounded-xl border-2 border-amber-400 bg-amber-50 p-5">
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-amber-400" />
-          <div className="pl-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">⚠️</span>
-              <p className="text-sm font-bold text-amber-800">Horario ocupado</p>
-            </div>
-            <p className="text-sm text-amber-700">
-              Ya existe una cita de <strong>{conflicto.horaInicio} a {conflicto.horaFin}</strong> con{' '}
-              <strong>{conflicto.paciente?.nombre} {conflicto.paciente?.apellido}</strong>{' '}
-              por: <em>{conflicto.motivo}</em>.
-            </p>
-          </div>
+        <div className="mb-5 rounded-md border border-[var(--semantic-warning)] bg-[var(--semantic-warning-bg)] px-4 py-3">
+          <p className="text-sm font-medium text-[var(--neutral-900)]">Horario ocupado</p>
+          <p className="mt-1 text-sm text-[var(--neutral-700)]">
+            Ya existe una cita de <strong>{conflicto.horaInicio} a {conflicto.horaFin}</strong>{' '}
+            con <strong>{conflicto.paciente?.nombre} {conflicto.paciente?.apellido}</strong> · {conflicto.motivo}
+          </p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="card p-8 space-y-6">
-        {/* Paciente */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-concreto">Paciente *</label>
-          {loadingPacientes ? (
-            <div className="text-sm text-marengo">Cargando pacientes...</div>
-          ) : (
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <FormSection title="Datos de la cita">
+          <FormField label="Paciente" required>
+            {loadingPacientes ? (
+              <div className="text-sm text-[var(--neutral-500)]">Cargando pacientes...</div>
+            ) : (
+              <select
+                name="pacienteId"
+                value={formData.pacienteId}
+                onChange={handleChange}
+                className={inputBase}
+                required
+                disabled={isLoading}
+              >
+                <option value="">Seleccione un paciente</option>
+                {pacientes.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} {p.apellido} — {p.tipoDocumento}: {p.documento}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FormField>
+
+          <FormField label="Estado de la cita">
             <select
-              name="pacienteId"
-              value={formData.pacienteId}
+              name="estado"
+              value={formData.estado}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg border border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20 transition-all outline-none"
-              required
+              className={inputBase}
               disabled={isLoading}
             >
-              <option value="">Seleccione un paciente</option>
-              {pacientes.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} {p.apellido} – {p.tipoDocumento}: {p.documento}
-                </option>
+              {ESTADO_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-          )}
-        </div>
+          </FormField>
 
-        {/* Estado — extra que no tiene el formulario de nueva */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-concreto">Estado de la cita</label>
-          <select
-            name="estado"
-            value={formData.estado}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-lg border border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20 transition-all outline-none"
-            disabled={isLoading}
-          >
-            {ESTADO_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label="Fecha" required hint={fechaLabel || undefined}>
+              <DatePicker
+                name="fecha"
+                value={formData.fecha}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+            </FormField>
+            <FormField label="Hora inicio" required>
+              <input
+                type="time"
+                name="horaInicio"
+                value={formData.horaInicio}
+                onChange={handleChange}
+                className={conflicto ? inputConflict : inputBase}
+                required
+                disabled={isLoading}
+              />
+            </FormField>
+            <FormField label="Hora fin" required>
+              <input
+                type="time"
+                name="horaFin"
+                value={formData.horaFin}
+                onChange={handleChange}
+                className={conflicto ? inputConflict : inputBase}
+                required
+                disabled={isLoading}
+              />
+            </FormField>
+          </div>
 
-        {/* Fecha + Horas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="block text-xs font-medium text-concreto uppercase tracking-wider">
-                Fecha <span className="text-red-500">*</span>
-              </span>
-              {fechaLabel && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#FBF7F4] text-[#60412B] border border-[#60412B]/20">
-                  {fechaLabel}
-                </span>
-              )}
-            </div>
-            <DatePicker
-              name="fecha"
-              value={formData.fecha}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-concreto">Hora de Inicio *</label>
-            <input
-              type="time"
-              name="horaInicio"
-              value={formData.horaInicio}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 rounded-lg border transition-all outline-none ${
-                conflicto ? 'border-amber-400 bg-amber-50' : 'border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20'
-              }`}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-concreto">Hora de Fin *</label>
-            <input
-              type="time"
-              name="horaFin"
-              value={formData.horaFin}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 rounded-lg border transition-all outline-none ${
-                conflicto ? 'border-amber-400 bg-amber-50' : 'border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20'
-              }`}
-              required
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-
-        {/* Línea de tiempo */}
-        {formData.fecha && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-concreto">Disponibilidad del día</label>
-              {loadingCitas && <span className="text-xs text-marengo animate-pulse">Cargando horarios...</span>}
-              {!loadingCitas && citasDelDia.length === 0 && (
-                <span className="text-xs text-green-600 font-medium">✓ Día libre</span>
-              )}
-            </div>
-            <div className="relative rounded-lg bg-green-50 border border-gray-200 overflow-hidden" style={{ height: '48px' }}>
-              {citasDelDia.map(cita => {
-                const left  = pct(toMinutes(cita.horaInicio));
-                const width = pct(toMinutes(cita.horaFin)) - left;
-                return (
-                  <div
-                    key={cita.id}
-                    title={`${cita.horaInicio}–${cita.horaFin}: ${cita.paciente?.nombre}`}
-                    className="absolute top-0 h-full bg-red-200 border-l-2 border-red-400 flex items-center overflow-hidden"
-                    style={{ left: `${left}%`, width: `${Math.max(width, 1)}%` }}
-                  >
-                    <span className="px-1 text-[9px] font-semibold text-red-700 truncate">{cita.horaInicio}</span>
-                  </div>
-                );
-              })}
-              {nuevaValida && (
-                <div
-                  className={`absolute top-0 h-full border-l-2 flex items-center ${
-                    conflicto ? 'bg-amber-300/70 border-amber-500' : 'bg-[#60412B]/20 border-[#60412B]'
-                  }`}
-                  style={{ left: `${pct(nuevaInicioMin)}%`, width: `${Math.max(pct(nuevaFinMin) - pct(nuevaInicioMin), 1)}%` }}
-                >
-                  <span className={`px-1 text-[9px] font-bold ${conflicto ? 'text-amber-800' : 'text-[#60412B]'}`}>
-                    Editando
+          {formData.fecha && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-[var(--neutral-700)]">Disponibilidad del día</span>
+                {loadingCitas && <span className="text-xs text-[var(--neutral-500)]">Cargando...</span>}
+                {!loadingCitas && citasDelDia.length === 0 && (
+                  <span className="text-xs font-medium text-[var(--semantic-success)]">Día libre</span>
+                )}
+                {!loadingCitas && citasDelDia.length > 0 && (
+                  <span className="text-xs font-medium text-[var(--neutral-600)]">
+                    {citasDelDia.length} cita{citasDelDia.length > 1 ? 's' : ''} agendada{citasDelDia.length > 1 ? 's' : ''}
                   </span>
+                )}
+              </div>
+              <div className="relative rounded-md border border-[var(--neutral-200)] overflow-hidden" style={{ height: '40px' }}>
+                <div className="absolute inset-0 bg-[var(--neutral-50)]" />
+                {citasDelDia.map((cita) => {
+                  const inicioMin = toMinutes(cita.horaInicio);
+                  const finMin = toMinutes(cita.horaFin);
+                  if (inicioMin < TIMELINE_START || finMin > TIMELINE_END) return null;
+                  const left = pct(inicioMin);
+                  const width = pct(finMin) - left;
+                  return (
+                    <div
+                      key={cita.id}
+                      title={`${cita.horaInicio}–${cita.horaFin}: ${cita.paciente?.nombre}`}
+                      className="absolute top-0 h-full bg-[var(--neutral-300)] border-l-2 border-[var(--neutral-500)] flex items-center overflow-hidden"
+                      style={{ left: `${left}%`, width: `${Math.max(width, 1)}%` }}
+                    >
+                      <span className="px-1 text-[9px] font-medium text-[var(--neutral-700)] truncate">{cita.horaInicio}</span>
+                    </div>
+                  );
+                })}
+                {nuevaValida && (() => {
+                  const left = pct(nuevaInicioMin);
+                  const width = pct(nuevaFinMin) - left;
+                  return (
+                    <div
+                      className={`absolute top-0 h-full border-l-2 flex items-center overflow-hidden transition-all ${
+                        conflicto
+                          ? 'bg-[var(--semantic-warning-bg)] border-[var(--semantic-warning)]'
+                          : 'bg-[rgba(117,76,36,0.18)] border-[var(--brand-morena)]'
+                      }`}
+                      style={{ left: `${left}%`, width: `${Math.max(width, 1)}%` }}
+                    >
+                      <span className={`px-1 text-[9px] font-semibold truncate ${conflicto ? 'text-[var(--neutral-900)]' : 'text-[var(--brand-morena-dark)]'}`}>
+                        Editando
+                      </span>
+                    </div>
+                  );
+                })()}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1">
+                  {[7, 9, 11, 13, 15, 17, 19, 21].map((h) => (
+                    <span key={h} className="text-[8px] text-[var(--neutral-400)] font-mono">{h}:00</span>
+                  ))}
+                </div>
+              </div>
+              {!loadingCitas && citasDelDia.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {citasDelDia.map((cita) => (
+                    <div
+                      key={cita.id}
+                      className="flex items-center gap-3 px-3 py-1.5 rounded-md bg-[var(--neutral-50)] border border-[var(--neutral-100)] text-xs"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--neutral-500)] flex-shrink-0" />
+                      <span className="font-mono font-medium text-[var(--neutral-700)]">
+                        {cita.horaInicio} – {cita.horaFin}
+                      </span>
+                      <span className="text-[var(--neutral-600)]">
+                        {cita.paciente?.nombre} {cita.paciente?.apellido}
+                      </span>
+                      <span className="text-[var(--neutral-400)] truncate">· {cita.motivo}</span>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1">
-                {[7, 9, 11, 13, 15, 17, 19, 21].map(h => (
-                  <span key={h} className="text-[8px] text-gray-400 font-mono">{h}:00</span>
-                ))}
-              </div>
             </div>
-          </div>
-        )}
+          )}
+        </FormSection>
 
-        {/* Motivo */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-concreto">Motivo *</label>
-          <input
-            type="text"
-            name="motivo"
-            value={formData.motivo}
-            onChange={handleChange}
-            className="w-full px-4 py-3 rounded-lg border border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20 transition-all outline-none"
-            required
-            disabled={isLoading}
-          />
-        </div>
+        <FormSection title="Detalles">
+          <FormField label="Motivo de la cita" required>
+            <input
+              type="text"
+              name="motivo"
+              value={formData.motivo}
+              onChange={handleChange}
+              className={inputBase}
+              required
+              disabled={isLoading}
+            />
+          </FormField>
+          <FormField label="Notas u observaciones">
+            <textarea
+              name="notas"
+              value={formData.notas}
+              onChange={handleChange}
+              rows={3}
+              className={textareaBase}
+              disabled={isLoading}
+            />
+          </FormField>
+        </FormSection>
 
-        {/* Notas */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-concreto">Notas / Observaciones</label>
-          <textarea
-            name="notas"
-            value={formData.notas}
-            onChange={handleChange}
-            rows={3}
-            className="w-full px-4 py-3 rounded-lg border border-marengo/30 focus:border-morena focus:ring-2 focus:ring-piel/20 transition-all outline-none resize-none"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Botones */}
-        <div className="flex gap-4 pt-4">
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href="/citas"
+            className="h-10 px-4 inline-flex items-center rounded-md border border-[var(--neutral-300)] text-sm font-medium text-[var(--neutral-700)] hover:bg-[var(--neutral-50)] transition-colors"
+          >
+            Cancelar
+          </Link>
           <button
             type="submit"
             disabled={isLoading || !!conflicto}
-            className={`btn-primary transition-all ${conflicto ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Actualizando...' : 'Actualizar Cita'}  {/* ← texto diferente */}
+            {isLoading ? 'Actualizando...' : 'Actualizar cita'}
           </button>
-          <Link href="/citas" className="btn-secondary">Cancelar</Link>
         </div>
       </form>
     </div>
@@ -441,7 +423,7 @@ export default function EditarCitaPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <Suspense fallback={<div className="text-sm text-marengo">Cargando...</div>}>
+        <Suspense fallback={<div className="text-sm text-[var(--neutral-500)]">Cargando...</div>}>
           <FormularioEditarCita />
         </Suspense>
       </DashboardLayout>

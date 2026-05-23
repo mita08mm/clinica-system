@@ -1,344 +1,310 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiEndpoint } from '@/lib/config';
-import Link from 'next/link';
+import { Badge, Spinner } from '@/components/ui';
+import { useProductos, type Producto, type ProductoTipo } from '@/hooks/useProductos';
+import { useDebounce } from '@/hooks/useDebounce';
+import { formatMonto } from '@/lib/utils/money';
 
-interface Producto {
-  id: string;
-  nombre: string;
-  tipo: 'COSMECEUTICO' | 'DERMOCOSMETICO' | 'EQUIPO' | 'INSUMO';
-  precio: number;
-  stock: number;
-  stockMinimo: number;
-  unidad: string;
-  descripcion?: string;
-}
-
-const TIPO_LABELS = {
+const TIPO_LABELS: Record<ProductoTipo, string> = {
   COSMECEUTICO: 'Cosmecéutico',
   DERMOCOSMETICO: 'Dermocosmético',
   EQUIPO: 'Equipo',
   INSUMO: 'Insumo',
 };
 
-const TIPO_COLORS = {
-  COSMECEUTICO: 'bg-purple-100 text-purple-800',
-  DERMOCOSMETICO: 'bg-blue-100 text-blue-800',
-  EQUIPO: 'bg-amber-100 text-amber-800',
-  INSUMO: 'bg-gray-100 text-gray-800',
-};
-
 export default function InventarioPage() {
-  const { token } = useAuth();
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterTipo, setFilterTipo] = useState<string>('');
-  const [showBajoStock, setShowBajoStock] = useState(false);
-  const [editingStock, setEditingStock] = useState<{ id: string; value: string } | null>(null);
+  const { productos, isLoading, error, actualizarStock } = useProductos();
+  const [query, setQuery] = useState('');
+  const [filterTipo, setFilterTipo] = useState<'' | ProductoTipo>('');
+  const [soloBajoStock, setSoloBajoStock] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
+  const debounced = useDebounce(query, 200);
 
-  const fetchProductos = useCallback(async () => {
-    if (!token) return;
-    
+  const filtrados = useMemo(() => {
+    const q = debounced.trim().toLowerCase();
+    return productos.filter((p) => {
+      const matchQ =
+        !q || p.nombre.toLowerCase().includes(q) || p.descripcion?.toLowerCase().includes(q);
+      const matchTipo = !filterTipo || p.tipo === filterTipo;
+      const matchStock = !soloBajoStock || p.stock <= p.stockMinimo;
+      return matchQ && matchTipo && matchStock;
+    });
+  }, [productos, debounced, filterTipo, soloBajoStock]);
+
+  const alertas = useMemo(
+    () => productos.filter((p) => p.stock <= p.stockMinimo),
+    [productos]
+  );
+  const valorInventario = useMemo(
+    () => productos.reduce((sum, p) => sum + p.precio * p.stock, 0),
+    [productos]
+  );
+
+  const handleSaveStock = async () => {
+    if (!editing) return;
+    const value = parseInt(editing.value, 10);
+    if (isNaN(value) || value < 0) return;
     try {
-      setIsLoading(true);
-      const response = await fetch(apiEndpoint('/productos'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) throw new Error('Error al cargar productos');
-
-      const data = await response.json();
-      setProductos((data.data || []).map((p: any) => ({ ...p, precio: Number(p.precio) })));
-    } catch (err) {
-      console.error('Error cargando productos:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProductos();
-  }, [fetchProductos]);
-
-  const handleUpdateStock = async (id: string, nuevoStock: number) => {
-    try {
-      const response = await fetch(apiEndpoint(`/productos/${id}`), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ stock: nuevoStock }),
-      });
-
-      if (!response.ok) throw new Error('Error al actualizar stock');
-
-      await fetchProductos();
-      setEditingStock(null);
-    } catch (err) {
-      console.error('Error actualizando stock:', err);
-      alert('Error al actualizar stock');
+      await actualizarStock(editing.id, value);
+      setEditing(null);
+    } catch (e) {
+      console.error(e);
     }
   };
-
-  const filteredProductos = productos.filter((p) => {
-    const matchSearch = searchTerm === '' || 
-      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchTipo = filterTipo === '' || p.tipo === filterTipo;
-    const matchStock = !showBajoStock || p.stock <= p.stockMinimo;
-
-    return matchSearch && matchTipo && matchStock;
-  });
-
-  const productosConAlertas = filteredProductos.filter(p => p.stock <= p.stockMinimo);
-  const valorInventario = productos.reduce((sum, p) => sum + (p.precio * p.stock), 0);
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        <div className="max-w-6xl">
+          <header className="flex flex-wrap items-end justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-heading font-bold text-concreto">
+              <p className="overline">Stock</p>
+              <h1 className="font-heading text-2xl font-medium text-[var(--neutral-900)] mt-1">
                 Inventario
               </h1>
-              <p className="text-marengo mt-1">
-                {productos.length} productos · Bs. {valorInventario.toFixed(2)} en stock
+              <p className="text-sm text-[var(--neutral-500)] mt-0.5">
+                {productos.length} productos · {formatMonto(valorInventario)} en stock
               </p>
             </div>
             <Link
               href="/inventario/nuevo"
-              className="px-4 py-2.5 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-[var(--brand-morena)] text-white text-sm font-medium hover:bg-[var(--brand-morena-dark)] transition-colors shadow-[var(--shadow-xs)]"
             >
-              + Nuevo Producto
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo producto
             </Link>
-          </div>
+          </header>
 
-          {/* Alertas de stock bajo */}
-          {productosConAlertas.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-red-900">
-                    {productosConAlertas.length} producto{productosConAlertas.length !== 1 ? 's' : ''} con stock bajo
-                  </h3>
-                  <p className="text-xs text-red-700 mt-1">
-                    {productosConAlertas.map(p => p.nombre).join(', ')}
-                  </p>
-                </div>
-              </div>
+          {/* Alertas */}
+          {alertas.length > 0 && (
+            <div className="mb-5 rounded-md border border-[rgba(192,138,46,0.25)] bg-[var(--semantic-warning-bg)] px-4 py-3">
+              <p className="text-sm font-medium text-[var(--semantic-warning)]">
+                {alertas.length} producto{alertas.length !== 1 ? 's' : ''} con stock bajo
+              </p>
+              <p className="text-xs text-[var(--neutral-600)] mt-0.5 truncate">
+                {alertas.map((p) => p.nombre).join(' · ')}
+              </p>
             </div>
           )}
 
           {/* Filtros */}
-          <div className="card p-4">
-            <div className="flex flex-wrap gap-4">
-              {/* Búsqueda */}
-              <div className="flex-1 min-w-[250px]">
-                <input
-                  type="text"
-                  placeholder="Buscar productos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-marengo focus:border-transparent"
-                />
-              </div>
-
-              {/* Filtro por tipo */}
-              <select
-                value={filterTipo}
-                onChange={(e) => setFilterTipo(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-marengo focus:border-transparent"
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <div className="relative flex-1 min-w-[220px] max-w-md">
+              <svg
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--neutral-400)] pointer-events-none"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
               >
-                <option value="">Todos los tipos</option>
-                {Object.entries(TIPO_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-
-              {/* Mostrar solo bajo stock */}
-              <button
-                onClick={() => setShowBajoStock(!showBajoStock)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  showBajoStock
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {showBajoStock ? '✓ Stock Bajo' : 'Stock Bajo'}
-              </button>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar productos..."
+                className="w-full h-10 pl-10 pr-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors"
+              />
             </div>
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value as '' | ProductoTipo)}
+              className="h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] focus:outline-none focus:border-[var(--brand-morena)]"
+            >
+              <option value="">Todos los tipos</option>
+              {(Object.entries(TIPO_LABELS) as [ProductoTipo, string][]).map(([k, label]) => (
+                <option key={k} value={k}>{label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setSoloBajoStock((s) => !s)}
+              className={`h-10 px-3 rounded-md text-xs font-medium transition-colors ${
+                soloBajoStock
+                  ? 'bg-[var(--semantic-warning-bg)] text-[var(--semantic-warning)] border border-[rgba(192,138,46,0.3)]'
+                  : 'bg-white text-[var(--neutral-600)] border border-[var(--neutral-300)] hover:text-[var(--neutral-900)]'
+              }`}
+            >
+              {soloBajoStock ? '✓ Stock bajo' : 'Stock bajo'}
+            </button>
+            <span className="text-xs text-[var(--neutral-500)] tabular-nums ml-auto">
+              {isLoading ? '—' : `${filtrados.length} ${filtrados.length === 1 ? 'producto' : 'productos'}`}
+            </span>
           </div>
 
-          {/* Tabla de productos */}
+          {error && (
+            <div className="mb-4 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
+            </div>
+          )}
+
           {isLoading ? (
-            <div className="card p-12 text-center">
-              <p className="text-marengo">Cargando productos...</p>
+            <div className="flex items-center justify-center py-16">
+              <Spinner size="lg" />
             </div>
-          ) : filteredProductos.length === 0 ? (
-            <div className="card p-12 text-center">
-              <p className="text-marengo">
-                {searchTerm || filterTipo || showBajoStock
-                  ? 'No se encontraron productos con los filtros aplicados'
-                  : 'No hay productos registrados'}
-              </p>
-            </div>
+          ) : filtrados.length === 0 ? (
+            <EmptyInventario tieneFiltro={!!query || !!filterTipo || soloBajoStock} />
           ) : (
-            <div className="card card-no-padding overflow-hidden">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Producto
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Precio
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Valor Total
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Acciones
-                    </th>
+                <thead>
+                  <tr className="border-b border-[var(--neutral-200)] bg-[var(--neutral-25)]">
+                    {[
+                      { label: 'Producto', align: 'left' },
+                      { label: 'Tipo', align: 'left' },
+                      { label: 'Precio', align: 'right' },
+                      { label: 'Stock', align: 'center' },
+                      { label: 'Valor', align: 'right' },
+                      { label: '', align: 'right' },
+                    ].map((c) => (
+                      <th
+                        key={c.label || 'acciones'}
+                        className={`px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--neutral-500)] text-${c.align}`}
+                      >
+                        {c.label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredProductos.map((producto) => {
-                    const stockBajo =producto.stock <= producto.stockMinimo;
-                    const isEditing = editingStock?.id === producto.id;
-
-                    return (
-                      <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{producto.nombre}</p>
-                            {producto.descripcion && (
-                              <p className="text-xs text-gray-500 mt-0.5">{producto.descripcion}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-lg ${TIPO_COLORS[producto.tipo]}`}>
-                            {TIPO_LABELS[producto.tipo]}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <p className="text-sm font-medium text-gray-900">
-                            Bs. {producto.precio.toFixed(2)}
-                          </p>
-                          <p className="text-xs text-gray-500">por {producto.unidad}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          {isEditing ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <input
-                                type="number"
-                                value={editingStock.value}
-                                onChange={(e) => setEditingStock({ ...editingStock, value: e.target.value })}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleUpdateStock(producto.id, parseInt(editingStock.value))}
-                                className="text-green-600 hover:text-green-700"
-                                title="Guardar"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={() => setEditingStock(null)}
-                                className="text-red-600 hover:text-red-700"
-                                title="Cancelar"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="text-center">
-                              <button
-                                onClick={() => setEditingStock({ id: producto.id, value: producto.stock.toString() })}
-                                className={`font-semibold hover:underline ${
-                                  stockBajo ? 'text-red-600' : 'text-gray-900'
-                                }`}
-                              >
-                                {producto.stock} {producto.unidad}
-                              </button>
-                              {stockBajo && (
-                                <p className="text-xs text-red-600 mt-0.5">
-                                  ⚠ Mín: {producto.stockMinimo}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <p className="text-sm font-semibold text-gray-900">
-                            Bs. {(producto.precio * producto.stock).toFixed(2)}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Link
-                            href={`/inventario/${producto.id}/editar`}
-                            className="text-marengo hover:text-concreto text-sm font-medium"
-                          >
-                            Editar
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-[var(--neutral-100)]">
+                  {filtrados.map((p) => (
+                    <ProductoRow
+                      key={p.id}
+                      producto={p}
+                      editing={editing?.id === p.id ? editing : null}
+                      onEdit={(value) => setEditing({ id: p.id, value })}
+                      onChange={(value) => setEditing({ id: p.id, value })}
+                      onCancel={() => setEditing(null)}
+                      onSave={handleSaveStock}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
-
-          {/* Resumen */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-5 border border-purple-100">
-              <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Cosmecéuticos</p>
-              <p className="text-2xl font-bold text-purple-900 mt-1">
-                {productos.filter(p => p.tipo === 'COSMECEUTICO').length}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-5 border border-blue-100">
-              <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">Dermocosméticos</p>
-              <p className="text-2xl font-bold text-blue-900 mt-1">
-                {productos.filter(p => p.tipo === 'DERMOCOSMETICO').length}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-5 border border-amber-100">
-              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">Equipos</p>
-              <p className="text-2xl font-bold text-amber-900 mt-1">
-                {productos.filter(p => p.tipo === 'EQUIPO').length}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-5 border border-red-100">
-              <p className="text-xs font-medium text-red-600 uppercase tracking-wider">Alertas Stock</p>
-              <p className="text-2xl font-bold text-red-900 mt-1">
-                {productosConAlertas.length}
-              </p>
-            </div>
-          </div>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+function ProductoRow({
+  producto,
+  editing,
+  onEdit,
+  onChange,
+  onCancel,
+  onSave,
+}: {
+  producto: Producto;
+  editing: { id: string; value: string } | null;
+  onEdit: (value: string) => void;
+  onChange: (value: string) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  const stockBajo = producto.stock <= producto.stockMinimo;
+  return (
+    <tr className="hover:bg-[var(--neutral-25)] transition-colors group">
+      <td className="px-4 py-3">
+        <p className="text-sm font-medium text-[var(--neutral-900)]">{producto.nombre}</p>
+        {producto.descripcion && (
+          <p className="text-xs text-[var(--neutral-500)] mt-0.5 truncate max-w-xs">
+            {producto.descripcion}
+          </p>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant="default">{TIPO_LABELS[producto.tipo]}</Badge>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <p className="text-sm text-[var(--neutral-800)] tabular-nums">
+          {formatMonto(producto.precio)}
+        </p>
+        <p className="text-xs text-[var(--neutral-500)]">/ {producto.unidad}</p>
+      </td>
+      <td className="px-4 py-3 text-center">
+        {editing ? (
+          <div className="inline-flex items-center gap-1">
+            <input
+              type="number"
+              value={editing.value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSave();
+                if (e.key === 'Escape') onCancel();
+              }}
+              className="w-16 h-7 px-2 text-center text-sm border border-[var(--brand-morena)] rounded focus:outline-none"
+              autoFocus
+            />
+            <button
+              onClick={onSave}
+              className="h-7 w-7 inline-flex items-center justify-center rounded text-[var(--semantic-success)] hover:bg-[var(--semantic-success-bg)]"
+              aria-label="Guardar"
+            >
+              ✓
+            </button>
+            <button
+              onClick={onCancel}
+              className="h-7 w-7 inline-flex items-center justify-center rounded text-[var(--neutral-500)] hover:bg-[var(--neutral-100)]"
+              aria-label="Cancelar"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => onEdit(producto.stock.toString())}
+            className={`text-sm font-medium tabular-nums hover:underline ${
+              stockBajo ? 'text-[var(--semantic-danger)]' : 'text-[var(--neutral-800)]'
+            }`}
+          >
+            {producto.stock} {producto.unidad}
+            {stockBajo && (
+              <span className="block text-[10px] text-[var(--neutral-500)] mt-0.5">
+                mín {producto.stockMinimo}
+              </span>
+            )}
+          </button>
+        )}
+      </td>
+      <td className="px-4 py-3 text-right text-sm font-medium text-[var(--neutral-800)] tabular-nums">
+        {formatMonto(producto.precio * producto.stock)}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Link
+          href={`/inventario/${producto.id}/editar`}
+          className="inline-flex items-center h-7 px-2.5 rounded-md text-xs font-medium text-[var(--brand-morena)] hover:bg-[rgba(204,175,125,0.18)] transition-colors opacity-0 group-hover:opacity-100"
+        >
+          Editar
+        </Link>
+      </td>
+    </tr>
+  );
+}
+
+function EmptyInventario({ tieneFiltro }: { tieneFiltro: boolean }) {
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--neutral-300)] bg-white px-6 py-16 text-center">
+      <p className="text-sm font-medium text-[var(--neutral-800)]">
+        {tieneFiltro ? 'Sin resultados' : 'Sin productos registrados'}
+      </p>
+      <p className="mt-1 text-xs text-[var(--neutral-500)]">
+        {tieneFiltro
+          ? 'Ajusta los filtros para ver más productos'
+          : 'Agrega el primer producto para comenzar tu inventario'}
+      </p>
+      {!tieneFiltro && (
+        <Link
+          href="/inventario/nuevo"
+          className="mt-5 inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-[var(--brand-morena)] text-white text-sm font-medium hover:bg-[var(--brand-morena-dark)] transition-colors"
+        >
+          Crear primer producto
+        </Link>
+      )}
+    </div>
   );
 }

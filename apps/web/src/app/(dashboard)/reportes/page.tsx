@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiEndpoint } from '@/lib/config';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { api, ApiError } from '@/lib/api/client';
 
 interface ReporteIngresos {
   totalIngresos: number;
@@ -26,7 +26,6 @@ interface ReportePagos {
 }
 
 export default function ReportesPage() {
-  const { token } = useAuth();
   const [tab, setTab] = useState<'ingresos' | 'pagos' | 'productos'>('ingresos');
   const [isLoading, setIsLoading] = useState(true);
   const [reporteIngresos, setReporteIngresos] = useState<ReporteIngresos | null>(null);
@@ -43,19 +42,14 @@ export default function ReportesPage() {
   });
 
   const fetchReporteIngresos = useCallback(async () => {
-    if (!token) return;
-    
     try {
       setIsLoading(true);
-      const response = await fetch(
-        apiEndpoint(`/reportes/ingresos?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setReporteIngresos(data.data);
-      } else {
+      const data = await api.get<ReporteIngresos>('/reportes/ingresos', {
+        params: { fechaInicio, fechaFin },
+      });
+      setReporteIngresos(data);
+    } catch (err) {
+      if (err instanceof ApiError) {
         // Datos mock si el endpoint no existe
         setReporteIngresos({
           totalIngresos: 45800,
@@ -67,41 +61,33 @@ export default function ReportesPage() {
             { mes: 'Marzo', total: 17500 },
           ],
         });
+      } else {
+        console.error('Error cargando reporte:', err);
       }
-    } catch (err) {
-      console.error('Error cargando reporte:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [token, fechaInicio, fechaFin]);
+  }, [fechaInicio, fechaFin]);
 
   const fetchReportePagos = useCallback(async () => {
-    if (!token) return;
-    
     try {
       setIsLoading(true);
-const response = await fetch(
-        apiEndpoint('/reportes/pagos-pendientes'),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setReportePagos(data.data);
-      } else {
-        // Datos mock
+      const data = await api.get<ReportePagos>('/reportes/pagos-pendientes');
+      setReportePagos(data);
+    } catch (err) {
+      if (err instanceof ApiError) {
         setReportePagos({
           totalDeuda: 7300,
           pacientesConDeuda: 12,
           cobros: [],
         });
+      } else {
+        console.error('Error cargando reporte:', err);
       }
-    } catch (err) {
-      console.error('Error cargando reporte:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     const loadData = () => {
@@ -116,49 +102,50 @@ const response = await fetch(
   }, [tab, fechaInicio, fechaFin]);
 
   const tabClass = (active: boolean) =>
-    `px-6 py-3 font-medium transition-colors border-b-2 ${
+    `px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
       active
-        ? 'text-marengo border-marengo'
-        : 'text-gray-500 border-transparent hover:text-gray-700'
+        ? 'text-[var(--brand-morena-dark)] border-[var(--brand-morena)]'
+        : 'text-[var(--neutral-500)] border-transparent hover:text-[var(--neutral-800)]'
     }`;
+
+  const inputDate =
+    'h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors';
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-concreto">
-              Reportes
-            </h1>
-            <p className="text-marengo mt-1">
-              Análisis de ingresos, pagos y estadísticas
-            </p>
-          </div>
+        <div>
+          <PageHeader
+            overline="Análisis"
+            title="Reportes"
+            subtitle="Ingresos, pagos pendientes y estadísticas del período"
+          />
 
-          {/* Filtro de Fechas */}
-          <div className="card p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="text-sm font-medium text-gray-700">Período:</label>
+          {/* Filtro de fechas */}
+          <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-[var(--neutral-600)]">
+                Período
+              </span>
               <input
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-marengo focus:border-transparent"
+                className={inputDate}
               />
-              <span className="text-gray-500">hasta</span>
+              <span className="text-sm text-[var(--neutral-400)]">hasta</span>
               <input
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-marengo focus:border-transparent"
+                className={inputDate}
               />
               <button
                 onClick={() => {
                   if (tab === 'ingresos') fetchReporteIngresos();
                   else if (tab === 'pagos') fetchReportePagos();
                 }}
-                className="px-4 py-2 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors"
+                className="h-10 px-4 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] transition-colors"
               >
                 Actualizar
               </button>
@@ -166,89 +153,71 @@ const response = await fetch(
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <div className="flex gap-1">
+          <div className="mb-5 border-b border-[var(--neutral-200)]">
+            <div className="flex gap-2">
               <button onClick={() => setTab('ingresos')} className={tabClass(tab === 'ingresos')}>
-                💰 Ingresos
+                Ingresos
               </button>
               <button onClick={() => setTab('pagos')} className={tabClass(tab === 'pagos')}>
-                📋 Pagos Pendientes
+                Pagos pendientes
               </button>
               <button onClick={() => setTab('productos')} className={tabClass(tab === 'productos')}>
-                📦 Productos
+                Productos
               </button>
             </div>
           </div>
 
           {/* Contenido */}
           {isLoading ? (
-            <div className="card p-12 text-center">
-              <p className="text-marengo">Cargando reporte...</p>
+            <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-12 text-center text-sm text-[var(--neutral-500)]">
+              Cargando reporte...
             </div>
           ) : (
             <>
-              {/* Tab Ingresos */}
               {tab === 'ingresos' && reporteIngresos && (
-                <div className="space-y-6">
-                  {/* Tarjetas de resumen */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-100">
-                      <p className="text-xs font-medium text-green-600 uppercase tracking-wider">
-                        Total Facturado
-                      </p>
-                      <p className="text-3xl font-bold text-green-900 mt-2">
-                        Bs. {reporteIngresos.totalIngresos.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-green-700 mt-1">En el período seleccionado</p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-100">
-                      <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">
-                        Total Cobrado
-                      </p>
-                      <p className="text-3xl font-bold text-blue-900 mt-2">
-                        Bs. {reporteIngresos.totalPagos.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-blue-700 mt-1">
-                        {((reporteIngresos.totalPagos / reporteIngresos.totalIngresos) * 100).toFixed(1)}% del total
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-6 border border-red-100">
-                      <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
-                        Pendiente de Cobro
-                      </p>
-                      <p className="text-3xl font-bold text-red-900 mt-2">
-                        Bs. {reporteIngresos.totalPendiente.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-red-700 mt-1">
-                        {((reporteIngresos.totalPendiente / reporteIngresos.totalIngresos) * 100).toFixed(1)}% del total
-                      </p>
-                    </div>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <KpiCard
+                      label="Total facturado"
+                      value={`Bs. ${reporteIngresos.totalIngresos.toLocaleString()}`}
+                      hint="En el período seleccionado"
+                    />
+                    <KpiCard
+                      label="Total cobrado"
+                      value={`Bs. ${reporteIngresos.totalPagos.toLocaleString()}`}
+                      hint={`${((reporteIngresos.totalPagos / reporteIngresos.totalIngresos) * 100).toFixed(1)}% del total`}
+                      accent="success"
+                    />
+                    <KpiCard
+                      label="Pendiente de cobro"
+                      value={`Bs. ${reporteIngresos.totalPendiente.toLocaleString()}`}
+                      hint={`${((reporteIngresos.totalPendiente / reporteIngresos.totalIngresos) * 100).toFixed(1)}% del total`}
+                      accent="warning"
+                    />
                   </div>
 
-                  {/* Gráfico de barras simple */}
                   {reporteIngresos.cobrosPorMes.length > 0 && (
-                    <div className="card p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-6">Ingresos por Mes</h3>
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-6">
+                      <h3 className="font-heading text-lg font-medium text-[var(--neutral-900)] mb-5">
+                        Ingresos por mes
+                      </h3>
                       <div className="space-y-4">
                         {reporteIngresos.cobrosPorMes.map((item, idx) => {
                           const maxValor = Math.max(...reporteIngresos.cobrosPorMes.map(m => m.total));
                           const porcentaje = (item.total / maxValor) * 100;
-
                           return (
                             <div key={idx}>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">{item.mes}</span>
-                                <span className="text-sm font-semibold text-gray-900">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-medium text-[var(--neutral-700)]">{item.mes}</span>
+                                <span className="text-sm font-medium text-[var(--neutral-900)] tabular-nums">
                                   Bs. {item.total.toLocaleString()}
                                 </span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-lg h-3">
+                              <div className="w-full bg-[var(--neutral-100)] rounded-full h-2 overflow-hidden">
                                 <div
-                                  className="bg-gradient-to-r from-marengo to-concreto h-3 rounded-lg transition-all"
+                                  className="bg-[var(--brand-morena)] h-2 rounded-full transition-all"
                                   style={{ width: `${porcentaje}%` }}
-                                ></div>
+                                />
                               </div>
                             </div>
                           );
@@ -259,66 +228,45 @@ const response = await fetch(
                 </div>
               )}
 
-              {/* Tab Pagos Pendientes */}
               {tab === 'pagos' && reportePagos && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-6 border border-red-100">
-                      <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
-                        Total Deuda
-                      </p>
-                      <p className="text-3xl font-bold text-red-900 mt-2">
-                        Bs. {reportePagos.totalDeuda.toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-6 border border-amber-100">
-                      <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
-                        Pacientes con Deuda
-                      </p>
-                      <p className="text-3xl font-bold text-amber-900 mt-2">
-                        {reportePagos.pacientesConDeuda}
-                      </p>
-                    </div>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <KpiCard
+                      label="Total deuda"
+                      value={`Bs. ${reportePagos.totalDeuda.toLocaleString()}`}
+                      accent="warning"
+                    />
+                    <KpiCard
+                      label="Pacientes con deuda"
+                      value={String(reportePagos.pacientesConDeuda)}
+                    />
                   </div>
 
                   {reportePagos.cobros.length > 0 ? (
-                    <div className="card card-no-padding overflow-hidden">
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-[var(--neutral-50)] border-b border-[var(--neutral-200)]">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                              Paciente
-                            </th>
-                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                              Total
-                            </th>
-                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                              Pagado
-                            </th>
-                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                              Saldo
-                            </th>
+                            <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Paciente</th>
+                            <th className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Total</th>
+                            <th className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Pagado</th>
+                            <th className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Saldo</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-[var(--neutral-100)]">
                           {reportePagos.cobros.map((cobro) => (
-                            <tr key={cobro.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4">
-                                <p className="font-medium text-gray-900">
-                                  {cobro.paciente.nombre} {cobro.paciente.apellido}
-                                </p>
+                            <tr key={cobro.id} className="hover:bg-[var(--neutral-50)]">
+                              <td className="px-5 py-3 text-sm font-medium text-[var(--neutral-800)]">
+                                {cobro.paciente.nombre} {cobro.paciente.apellido}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-5 py-3 text-right text-sm text-[var(--neutral-700)] tabular-nums">
                                 Bs. {cobro.total.toFixed(2)}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-5 py-3 text-right text-sm text-[var(--neutral-700)] tabular-nums">
                                 Bs. {cobro.pagado.toFixed(2)}
                               </td>
-                              <td className="px-6 py-4 text-right">
-                                <span className="font-semibold text-red-600">
-                                  Bs. {cobro.saldo.toFixed(2)}
-                                </span>
+                              <td className="px-5 py-3 text-right text-sm font-medium text-[var(--semantic-danger)] tabular-nums">
+                                Bs. {cobro.saldo.toFixed(2)}
                               </td>
                             </tr>
                           ))}
@@ -326,19 +274,16 @@ const response = await fetch(
                       </table>
                     </div>
                   ) : (
-                    <div className="card p-12 text-center">
-                      <p className="text-gray-500">No hay pagos pendientes</p>
+                    <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-12 text-center text-sm text-[var(--neutral-500)]">
+                      No hay pagos pendientes
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Tab Productos */}
               {tab === 'productos' && (
-                <div className="card p-12 text-center">
-                  <p className="text-gray-500">
-                    Reporte de productos más usados en desarrollo...
-                  </p>
+                <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-12 text-center text-sm text-[var(--neutral-500)]">
+                  Reporte de productos más usados en desarrollo...
                 </div>
               )}
             </>
@@ -346,5 +291,31 @@ const response = await fetch(
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  hint,
+  accent = 'neutral',
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: 'neutral' | 'success' | 'warning';
+}) {
+  const valueColor =
+    accent === 'success'
+      ? 'text-[var(--semantic-success)]'
+      : accent === 'warning'
+      ? 'text-[var(--semantic-warning)]'
+      : 'text-[var(--neutral-900)]';
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-5">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-500)]">{label}</p>
+      <p className={`font-heading text-2xl font-medium mt-2 ${valueColor}`}>{value}</p>
+      {hint && <p className="text-xs text-[var(--neutral-500)] mt-1">{hint}</p>}
+    </div>
   );
 }

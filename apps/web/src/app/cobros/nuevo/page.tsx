@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
 import Link from 'next/link';
-import { apiEndpoint } from '@/lib/config';
+import { api } from '@/lib/api';
+
+const inputBase =
+  'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors disabled:bg-[var(--neutral-50)]';
 
 interface Paciente {
   id: string;
@@ -19,7 +23,6 @@ interface Paciente {
 
 export default function NuevoCobroPage() {
   const router = useRouter();
-  const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -30,22 +33,10 @@ export default function NuevoCobroPage() {
   const [costo, setCosto] = useState('');
 
   useEffect(() => {
-    if (!token) return;
-
     const fetchPacientes = async () => {
       try {
-        const response = await fetch(apiEndpoint('/pacientes'), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Error al cargar pacientes');
-        }
-
-        const data = await response.json();
-        setPacientes(data.data.filter((p: Paciente) => p.estado === 'ACTIVO'));
+        const data = await api.get<Paciente[]>('/pacientes');
+        setPacientes(data.filter((p) => p.estado === 'ACTIVO'));
       } catch (err) {
         console.error('Error cargando pacientes:', err);
       } finally {
@@ -54,7 +45,7 @@ export default function NuevoCobroPage() {
     };
 
     fetchPacientes();
-  }, [token]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,31 +66,17 @@ export default function NuevoCobroPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(apiEndpoint('/cobros'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          pacienteId,
-          items: [
-            {
-              tipo: 'PAQUETE',
-              nombre: titulo.trim(),
-              cantidad: 1,
-              precioUnitario: monto,
-            },
-          ],
-        }),
+      await api.post('/cobros', {
+        pacienteId,
+        items: [
+          {
+            tipo: 'PAQUETE',
+            nombre: titulo.trim(),
+            cantidad: 1,
+            precioUnitario: monto,
+          },
+        ],
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        console.log('ERROR COBRO:', JSON.stringify(data, null, 2));
-        throw new Error(data.error || 'Error al crear cobro');
-      }
-
       router.push('/cobros');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -120,120 +97,95 @@ export default function NuevoCobroPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-5xl space-y-6">
-          <div className="flex items-center gap-4">
-            <Link href="/cobros" className="text-marengo hover:text-concreto">
-              ← Volver
-            </Link>
-            <div>
-              <h1 className="text-3xl font-heading font-bold text-concreto">
-                Nuevo registro de cobro
-              </h1>
-              <p className="text-marengo mt-1">
-                Descripción del producto o servicio y costo
-              </p>
-            </div>
-          </div>
+        <div className="max-w-4xl">
+          <PageHeader
+            overline="Cobros"
+            title="Nuevo cobro"
+            subtitle="Registra un producto o servicio y su costo"
+            backHref="/cobros"
+          />
 
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Selección de paciente */}
-            <div className="card p-8">
-              <h2 className="text-xl font-heading font-bold text-concreto mb-4">
-                Paciente
-              </h2>
-              {loadingPacientes ? (
-                <div className="text-sm text-marengo">Cargando pacientes...</div>
-              ) : (
-                <select
-                  value={pacienteId}
-                  onChange={(e) => setPacienteId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-marengo/30 
-                           focus:border-morena focus:ring-2 focus:ring-piel/20 
-                           transition-all outline-none"
-                  required
-                  disabled={isLoading}
-                >
-                  <option value="">Seleccione un paciente</option>
-                  {pacientes.map((paciente) => (
-                    <option key={paciente.id} value={paciente.id}>
-                      {paciente.nombre} {paciente.apellido} - {paciente.tipoDocumento}: {paciente.documento}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FormSection title="Paciente">
+              <FormField label="Paciente" required>
+                {loadingPacientes ? (
+                  <div className="text-sm text-[var(--neutral-500)]">Cargando pacientes...</div>
+                ) : (
+                  <select
+                    value={pacienteId}
+                    onChange={(e) => setPacienteId(e.target.value)}
+                    className={inputBase}
+                    required
+                    disabled={isLoading}
+                  >
+                    <option value="">Seleccione un paciente</option>
+                    {pacientes.map((paciente) => (
+                      <option key={paciente.id} value={paciente.id}>
+                        {paciente.nombre} {paciente.apellido} — {paciente.tipoDocumento}: {paciente.documento}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </FormField>
+            </FormSection>
 
-            <div className="card p-8">
-              <h2 className="text-xl font-heading font-bold text-concreto mb-4">
-                Registro
-              </h2>
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-medium text-concreto mb-2">
-                    Descripción o título
-                  </label>
+            <FormSection title="Registro">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Descripción o título" required>
                   <input
                     type="text"
                     value={titulo}
                     onChange={(e) => setTitulo(e.target.value)}
-                    placeholder="Ej: Limpieza facial, producto reparador"
-                    className="w-full px-3 py-2 text-sm rounded border border-marengo/30 
-                             focus:border-morena outline-none"
+                    placeholder="Ej. Limpieza facial, producto reparador"
+                    className={inputBase}
+                    required
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className="block text-xs font-medium text-concreto mb-2">
-                    Costo
-                  </label>
+                <FormField label="Costo (Bs.)" required>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     value={costo}
                     onChange={(e) => setCosto(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded border border-marengo/30 
-                             focus:border-morena outline-none"
+                    placeholder="0.00"
+                    className={inputBase}
+                    required
                   />
-                </div>
+                </FormField>
               </div>
-            </div>
 
-            <div className="card p-8">
-              <h2 className="text-xl font-heading font-bold text-concreto mb-4">
-                Resumen
-              </h2>
-              
-              <div className="space-y-4 max-w-md ml-auto">
-                <div className="flex justify-between text-xl font-bold text-concreto border-t-2 border-marengo/30 pt-4">
-                  <span>COSTO:</span>
-                  <span className="text-morena">{formatMonto(costoActual)}</span>
-                </div>
+              <div className="mt-2 flex items-center justify-between rounded-md bg-[var(--neutral-50)] border border-[var(--neutral-100)] px-4 py-3">
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--neutral-600)]">
+                  Total a cobrar
+                </span>
+                <span className="font-heading text-2xl font-medium text-[var(--brand-morena-dark)]">
+                  {formatMonto(costoActual)}
+                </span>
               </div>
-            </div>
+            </FormSection>
 
-            {/* Botones */}
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={isLoading || !titulo.trim() || costoActual <= 0}
-                className="btn-primary"
-              >
-                {isLoading ? 'Guardando...' : 'Guardar registro'}
-              </button>
+            <div className="flex items-center justify-end gap-3">
               <Link
                 href="/cobros"
-                className="btn-secondary"
+                className="h-10 px-4 inline-flex items-center rounded-md border border-[var(--neutral-300)] text-sm font-medium text-[var(--neutral-700)] hover:bg-[var(--neutral-50)] transition-colors"
               >
                 Cancelar
               </Link>
+              <button
+                type="submit"
+                disabled={isLoading || !titulo.trim() || costoActual <= 0}
+                className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? 'Guardando...' : 'Guardar registro'}
+              </button>
             </div>
           </form>
         </div>

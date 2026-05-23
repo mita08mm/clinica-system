@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiEndpoint } from '@/lib/config';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormSection, FormField } from '@/components/forms/FormSection';
+import { api, ApiError } from '@/lib/api/client';
 
 interface Usuario {
   id: string;
@@ -24,7 +25,6 @@ interface ConfigClinica {
 }
 
 export default function ConfiguracionPage() {
-  const { token } = useAuth();
   const [tab, setTab] = useState<'clinica' | 'usuarios' | 'general'>('clinica');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,18 +52,12 @@ export default function ConfiguracionPage() {
   });
 
   const fetchUsuarios = useCallback(async () => {
-    if (!token) return;
-    
     try {
       setIsLoading(true);
-      const response = await fetch(apiEndpoint('/usuarios'), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsuarios(data.data || []);
-      } else {
+      const data = await api.get<Usuario[]>('/usuarios');
+      setUsuarios(data || []);
+    } catch (err) {
+      if (err instanceof ApiError) {
         // Datos mock si el endpoint no existe
         setUsuarios([
           {
@@ -75,13 +69,13 @@ export default function ConfiguracionPage() {
             activo: true,
           },
         ]);
+      } else {
+        console.error('Error cargando usuarios:', err);
       }
-    } catch (err) {
-      console.error('Error cargando usuarios:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (tab === 'usuarios') {
@@ -97,22 +91,14 @@ export default function ConfiguracionPage() {
 
     try {
       setIsSaving(true);
-      const response = await fetch(apiEndpoint('/configuracion/clinica'), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(configClinica),
-      });
-
-      if (response.ok) {
-        setSuccess('Configuración guardada correctamente');
-      } else {
+      await api.put('/configuracion/clinica', configClinica);
+      setSuccess('Configuración guardada correctamente');
+    } catch (err) {
+      if (err instanceof ApiError) {
         setSuccess('Configuración guardada (modo demo)');
+      } else {
+        setError('Error al guardar configuración');
       }
-    } catch {
-      setError('Error al guardar configuración');
     } finally {
       setIsSaving(false);
     }
@@ -130,30 +116,17 @@ export default function ConfiguracionPage() {
 
     try {
       setIsSaving(true);
-      const response = await fetch(apiEndpoint('/usuarios'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(nuevoUsuario),
+      await api.post('/usuarios', nuevoUsuario);
+      setSuccess('Usuario creado correctamente');
+      setShowNuevoUsuario(false);
+      setNuevoUsuario({
+        nombre: '',
+        apellido: '',
+        email: '',
+        password: '',
+        rol: 'RECEPCIONISTA',
       });
-
-      if (response.ok) {
-        setSuccess('Usuario creado correctamente');
-        setShowNuevoUsuario(false);
-        setNuevoUsuario({
-          nombre: '',
-          apellido: '',
-          email: '',
-          password: '',
-          rol: 'RECEPCIONISTA',
-        });
-        await fetchUsuarios();
-      } else {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al crear usuario');
-      }
+      await fetchUsuarios();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error al crear usuario');
     } finally {
@@ -163,33 +136,23 @@ export default function ConfiguracionPage() {
 
   const toggleUsuarioActivo = async (id: string, activo: boolean) => {
     try {
-      const response = await fetch(apiEndpoint(`/usuarios/${id}`), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ activo: !activo }),
-      });
-
-      if (response.ok) {
-        setSuccess(`Usuario ${!activo ? 'activado' : 'desactivado'} correctamente`);
-        await fetchUsuarios();
-      }
+      await api.patch(`/usuarios/${id}`, { activo: !activo });
+      setSuccess(`Usuario ${!activo ? 'activado' : 'desactivado'} correctamente`);
+      await fetchUsuarios();
     } catch {
       setError('Error al actualizar usuario');
     }
   };
 
   const tabClass = (active: boolean) =>
-    `px-6 py-3 font-medium transition-colors border-b-2 ${
+    `px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
       active
-        ? 'text-marengo border-marengo'
-        : 'text-gray-500 border-transparent hover:text-gray-700'
+        ? 'text-[var(--brand-morena-dark)] border-[var(--brand-morena)]'
+        : 'text-[var(--neutral-500)] border-transparent hover:text-[var(--neutral-800)]'
     }`;
 
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
-  const inputClass = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-marengo focus:border-transparent';
+  const inputBase =
+    'w-full h-10 px-3 rounded-md border border-[var(--neutral-300)] bg-white text-sm text-[var(--neutral-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:border-[var(--brand-morena)] focus:ring-[3px] focus:ring-[rgba(117,76,36,0.12)] transition-colors';
 
   const ROL_LABELS = {
     ADMIN: 'Administrador',
@@ -198,120 +161,112 @@ export default function ConfiguracionPage() {
   };
 
   const ROL_COLORS = {
-    ADMIN: 'bg-purple-100 text-purple-800',
-    MEDICO: 'bg-blue-100 text-blue-800',
-    RECEPCIONISTA: 'bg-gray-100 text-gray-800',
+    ADMIN: 'bg-[rgba(117,76,36,0.1)] text-[var(--brand-morena-dark)]',
+    MEDICO: 'bg-[var(--semantic-info-bg)] text-[var(--semantic-info)]',
+    RECEPCIONISTA: 'bg-[var(--neutral-100)] text-[var(--neutral-700)]',
   };
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-concreto">
-              Configuración
-            </h1>
-            <p className="text-marengo mt-1">
-              Gestión de clínica, usuarios y preferencias
-            </p>
-          </div>
+        <div>
+          <PageHeader
+            overline="Sistema"
+            title="Configuración"
+            subtitle="Gestión de clínica, usuarios y preferencias"
+          />
 
-          {/* Mensajes */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-5 rounded-md border border-[rgba(181,58,58,0.2)] bg-[var(--semantic-danger-bg)] px-4 py-3 text-sm text-[var(--semantic-danger)]">
+              {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800">{success}</p>
+            <div className="mb-5 rounded-md border border-[rgba(58,138,79,0.2)] bg-[var(--semantic-success-bg)] px-4 py-3 text-sm text-[var(--semantic-success)]">
+              {success}
             </div>
           )}
 
           {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <div className="flex gap-1">
+          <div className="mb-5 border-b border-[var(--neutral-200)]">
+            <div className="flex gap-2">
               <button onClick={() => setTab('clinica')} className={tabClass(tab === 'clinica')}>
-                🏥 Información de la Clínica
+                Clínica
               </button>
               <button onClick={() => setTab('usuarios')} className={tabClass(tab === 'usuarios')}>
-                👥 Usuarios
+                Usuarios
               </button>
               <button onClick={() => setTab('general')} className={tabClass(tab === 'general')}>
-                ⚙️ General
+                General
               </button>
             </div>
           </div>
 
           {/* Tab Clínica */}
           {tab === 'clinica' && (
-            <form onSubmit={handleGuardarClinica} className="card p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Nombre de la Clínica</label>
+            <form onSubmit={handleGuardarClinica} className="space-y-5 max-w-4xl">
+              <FormSection title="Información de la clínica">
+                <FormField label="Nombre de la clínica" required>
                   <input
                     type="text"
                     value={configClinica.nombre}
-                    onChange={(e) => setConfigClinica({...configClinica, nombre: e.target.value})}
-                    className={inputClass}
+                    onChange={(e) => setConfigClinica({ ...configClinica, nombre: e.target.value })}
+                    className={inputBase}
                     required
                   />
-                </div>
+                </FormField>
 
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Dirección</label>
+                <FormField label="Dirección" required>
                   <input
                     type="text"
                     value={configClinica.direccion}
-                    onChange={(e) => setConfigClinica({...configClinica, direccion: e.target.value})}
-                    className={inputClass}
+                    onChange={(e) => setConfigClinica({ ...configClinica, direccion: e.target.value })}
+                    className={inputBase}
                     required
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <label className={labelClass}>Teléfono</label>
-                  <input
-                    type="tel"
-                    value={configClinica.telefono}
-                    onChange={(e) => setConfigClinica({...configClinica, telefono: e.target.value})}
-                    className={inputClass}
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField label="Teléfono" required>
+                    <input
+                      type="tel"
+                      value={configClinica.telefono}
+                      onChange={(e) => setConfigClinica({ ...configClinica, telefono: e.target.value })}
+                      className={inputBase}
+                      required
+                    />
+                  </FormField>
 
-                <div>
-                  <label className={labelClass}>Email</label>
-                  <input
-                    type="email"
-                    value={configClinica.email}
-                    onChange={(e) => setConfigClinica({...configClinica, email: e.target.value})}
-                    className={inputClass}
-                    required
-                  />
-                </div>
+                  <FormField label="Email" required>
+                    <input
+                      type="email"
+                      value={configClinica.email}
+                      onChange={(e) => setConfigClinica({ ...configClinica, email: e.target.value })}
+                      className={inputBase}
+                      required
+                    />
+                  </FormField>
 
-                <div>
-                  <label className={labelClass}>NIT</label>
-                  <input
-                    type="text"
-                    value={configClinica.nit}
-                    onChange={(e) => setConfigClinica({...configClinica, nit: e.target.value})}
-                    className={inputClass}
-                    required
-                  />
+                  <FormField label="NIT" required>
+                    <input
+                      type="text"
+                      value={configClinica.nit}
+                      onChange={(e) => setConfigClinica({ ...configClinica, nit: e.target.value })}
+                      className={inputBase}
+                      required
+                    />
+                  </FormField>
                 </div>
-              </div>
+              </FormSection>
 
-              <div className="mt-8">
+              <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-3 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium disabled:opacity-50"
+                  className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] disabled:opacity-50 transition-colors"
                 >
-                  {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                  {isSaving ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
             </form>
@@ -319,149 +274,131 @@ export default function ConfiguracionPage() {
 
           {/* Tab Usuarios */}
           {tab === 'usuarios' && (
-            <div className="space-y-6">
+            <div className="space-y-5 max-w-5xl">
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowNuevoUsuario(!showNuevoUsuario)}
-                  className="px-4 py-2.5 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium"
+                  className="h-10 px-4 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] transition-colors"
                 >
-                  {showNuevoUsuario ? 'Cancelar' : '+ Nuevo Usuario'}
+                  {showNuevoUsuario ? 'Cancelar' : 'Nuevo usuario'}
                 </button>
               </div>
 
-              {/* Formulario nuevo usuario */}
               {showNuevoUsuario && (
-                <form onSubmit={handleCrearUsuario} className="card p-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6">Crear Nuevo Usuario</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className={labelClass}>Nombre</label>
-                      <input
-                        type="text"
-                        value={nuevoUsuario.nombre}
-                        onChange={(e) => setNuevoUsuario({...nuevoUsuario, nombre: e.target.value})}
-                        className={inputClass}
-                        required
-                      />
-                    </div>
+                <form onSubmit={handleCrearUsuario} className="space-y-5">
+                  <FormSection title="Crear nuevo usuario">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField label="Nombre" required>
+                        <input
+                          type="text"
+                          value={nuevoUsuario.nombre}
+                          onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, nombre: e.target.value })}
+                          className={inputBase}
+                          required
+                        />
+                      </FormField>
 
-                    <div>
-                      <label className={labelClass}>Apellido</label>
-                      <input
-                        type="text"
-                        value={nuevoUsuario.apellido}
-                        onChange={(e) => setNuevoUsuario({...nuevoUsuario, apellido: e.target.value})}
-                        className={inputClass}
-                        required
-                      />
-                    </div>
+                      <FormField label="Apellido" required>
+                        <input
+                          type="text"
+                          value={nuevoUsuario.apellido}
+                          onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, apellido: e.target.value })}
+                          className={inputBase}
+                          required
+                        />
+                      </FormField>
 
-                    <div>
-                      <label className={labelClass}>Email</label>
-                      <input
-                        type="email"
-                        value={nuevoUsuario.email}
-                        onChange={(e) => setNuevoUsuario({...nuevoUsuario, email: e.target.value})}
-                        className={inputClass}
-                        required
-                      />
-                    </div>
+                      <FormField label="Email" required>
+                        <input
+                          type="email"
+                          value={nuevoUsuario.email}
+                          onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, email: e.target.value })}
+                          className={inputBase}
+                          required
+                        />
+                      </FormField>
 
-                    <div>
-                      <label className={labelClass}>Contraseña</label>
-                      <input
-                        type="password"
-                        value={nuevoUsuario.password}
-                        onChange={(e) => setNuevoUsuario({...nuevoUsuario, password: e.target.value})}
-                        className={inputClass}
-                        required
-                        minLength={6}
-                      />
-                    </div>
+                      <FormField label="Contraseña" required hint="Mínimo 6 caracteres">
+                        <input
+                          type="password"
+                          value={nuevoUsuario.password}
+                          onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, password: e.target.value })}
+                          className={inputBase}
+                          required
+                          minLength={6}
+                        />
+                      </FormField>
 
-                    <div className="md:col-span-2">
-                      <label className={labelClass}>Rol</label>
-                      <select
-                        value={nuevoUsuario.rol}
-                        onChange={(e) => setNuevoUsuario({...nuevoUsuario, rol: e.target.value as 'ADMIN' | 'MEDICO' | 'RECEPCIONISTA'})}
-                        className={inputClass}
-                        required
-                      >
-                        <option value="RECEPCIONISTA">Recepcionista</option>
-                        <option value="MEDICO">Médico</option>
-                        <option value="ADMIN">Administrador</option>
-                      </select>
+                      <div className="md:col-span-2">
+                        <FormField label="Rol" required>
+                          <select
+                            value={nuevoUsuario.rol}
+                            onChange={(e) => setNuevoUsuario({ ...nuevoUsuario, rol: e.target.value as 'ADMIN' | 'MEDICO' | 'RECEPCIONISTA' })}
+                            className={inputBase}
+                            required
+                          >
+                            <option value="RECEPCIONISTA">Recepcionista</option>
+                            <option value="MEDICO">Médico</option>
+                            <option value="ADMIN">Administrador</option>
+                          </select>
+                        </FormField>
+                      </div>
                     </div>
-                  </div>
+                  </FormSection>
 
-                  <div className="mt-8">
+                  <div className="flex justify-end">
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="px-6 py-3 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium disabled:opacity-50"
+                      className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] disabled:opacity-50 transition-colors"
                     >
-                      {isSaving ? 'Creando...' : 'Crear Usuario'}
+                      {isSaving ? 'Creando...' : 'Crear usuario'}
                     </button>
                   </div>
                 </form>
               )}
 
-              {/* Lista de usuarios */}
               {isLoading ? (
-                <div className="card p-12 text-center">
-                  <p className="text-marengo">Cargando usuarios...</p>
+                <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white p-12 text-center text-sm text-[var(--neutral-500)]">
+                  Cargando usuarios...
                 </div>
               ) : (
-                <div className="card card-no-padding overflow-hidden">
+                <div className="rounded-[var(--radius-lg)] border border-[var(--neutral-200)] bg-white overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-[var(--neutral-50)] border-b border-[var(--neutral-200)]">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                          Usuario
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                          Email
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                          Rol
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                          Estado
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
-                          Acciones
-                        </th>
+                        <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Usuario</th>
+                        <th className="px-5 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Email</th>
+                        <th className="px-5 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Rol</th>
+                        <th className="px-5 py-3 text-center text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Estado</th>
+                        <th className="px-5 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-[var(--neutral-600)]">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-[var(--neutral-100)]">
                       {usuarios.map((usuario) => (
-                        <tr key={usuario.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <p className="font-medium text-gray-900">
-                              {usuario.nombre} {usuario.apellido}
-                            </p>
+                        <tr key={usuario.id} className="hover:bg-[var(--neutral-50)]">
+                          <td className="px-5 py-3 text-sm font-medium text-[var(--neutral-800)]">
+                            {usuario.nombre} {usuario.apellido}
                           </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-gray-600">{usuario.email}</p>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-lg ${ROL_COLORS[usuario.rol]}`}>
+                          <td className="px-5 py-3 text-sm text-[var(--neutral-600)]">{usuario.email}</td>
+                          <td className="px-5 py-3 text-center">
+                            <span className={`inline-flex px-2 py-0.5 text-[11px] font-medium rounded-full ${ROL_COLORS[usuario.rol]}`}>
                               {ROL_LABELS[usuario.rol]}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-lg ${
+                          <td className="px-5 py-3 text-center">
+                            <span className={`inline-flex px-2 py-0.5 text-[11px] font-medium rounded-full ${
                               usuario.activo
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
+                                ? 'bg-[var(--semantic-success-bg)] text-[var(--semantic-success)]'
+                                : 'bg-[var(--neutral-100)] text-[var(--neutral-600)]'
                             }`}>
                               {usuario.activo ? 'Activo' : 'Inactivo'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-5 py-3 text-right">
                             <button
                               onClick={() => toggleUsuarioActivo(usuario.id, usuario.activo)}
-                              className="text-marengo hover:text-concreto text-sm font-medium"
+                              className="text-xs font-medium text-[var(--brand-morena-dark)] hover:underline"
                             >
                               {usuario.activo ? 'Desactivar' : 'Activar'}
                             </button>
@@ -477,34 +414,29 @@ export default function ConfiguracionPage() {
 
           {/* Tab General */}
           {tab === 'general' && (
-            <div className="card p-8">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferencias Generales</h3>
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-marengo" />
-                      <span className="text-sm text-gray-700">Enviar notificaciones por email</span>
-                    </label>
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" defaultChecked className="w-4 h-4 text-marengo" />
-                      <span className="text-sm text-gray-700">Alertas de stock bajo</span>
-                    </label>
-                    <label className="flex items-center gap-3">
-                      <input type="checkbox" className="w-4 h-4 text-marengo" />
-                      <span className="text-sm text-gray-700">Recordatorios de citas</span>
-                    </label>
-                  </div>
-                </div>
+            <div className="max-w-2xl space-y-5">
+              <FormSection title="Preferencias generales">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" defaultChecked className="w-4 h-4 accent-[var(--brand-morena)]" />
+                  <span className="text-sm text-[var(--neutral-700)]">Enviar notificaciones por email</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" defaultChecked className="w-4 h-4 accent-[var(--brand-morena)]" />
+                  <span className="text-sm text-[var(--neutral-700)]">Alertas de stock bajo</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-[var(--brand-morena)]" />
+                  <span className="text-sm text-[var(--neutral-700)]">Recordatorios de citas</span>
+                </label>
+              </FormSection>
 
-                <div className="pt-6 border-t border-gray-200">
-                  <button
-                    type="button"
-                    className="px-6 py-3 bg-marengo text-white rounded-lg hover:bg-concreto transition-colors font-medium"
-                  >
-                    Guardar Preferencias
-                  </button>
-                </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="h-10 px-5 inline-flex items-center rounded-md bg-[var(--brand-morena)] text-sm font-medium text-white hover:bg-[var(--brand-morena-dark)] transition-colors"
+                >
+                  Guardar preferencias
+                </button>
               </div>
             </div>
           )}

@@ -6,8 +6,3 @@ export const config = {
 
   environment: process.env.NODE_ENV,
 } as const;
-
-export const apiEndpoint = (path: string): string => {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${config.apiUrl}${cleanPath}`;
-};
