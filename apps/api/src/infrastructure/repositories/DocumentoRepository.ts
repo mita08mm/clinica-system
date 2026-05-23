@@ -1,4 +1,4 @@
-import { PrismaClient, Documento, TipoDocumento, CategoriaFoto, MomentoFoto } from '@clinica/database';
+import { PrismaClient, Documento, TipoDocumento } from '@clinica/database';
 
 export interface CreateDocumentoData {
   pacienteId: string;
@@ -9,12 +9,27 @@ export interface CreateDocumentoData {
   url: string;
   tamaño: number;
   mimeType: string;
-  categoria?: CategoriaFoto;
-  momento?: MomentoFoto;
 }
 
 export class DocumentoRepository {
   constructor(private prisma: PrismaClient) {}
+
+  async findAll(): Promise<Documento[]> {
+    return this.prisma.documento.findMany({
+      include: {
+        tratamiento: {
+          select: {
+            id: true,
+            fecha: true,
+            tipoTratamiento: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 
   async create(data: CreateDocumentoData): Promise<Documento> {
     return this.prisma.documento.create({

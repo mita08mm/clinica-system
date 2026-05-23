@@ -14,3 +14,6 @@ export type { BadgeProps } from './badge';
 
 export { Select } from './select';
 export type { SelectProps } from './select';
+
+export { Textarea } from './textarea';
+export type { TextareaProps } from './textarea';

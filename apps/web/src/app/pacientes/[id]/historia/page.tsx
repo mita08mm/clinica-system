@@ -4,12 +4,7 @@ import { useParams } from 'next/navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useHistoriaClinica } from '@/hooks/useHistoriaClinica';
-import PatientHeader from '@/components/historia/PatientHeader';
-import TratamientosList from '@/components/historia/TratamientosList';
-import ProtocolosPanel from '@/components/historia/ProtocolosPanel';
-import AttachmentsPanel from '@/components/historia/AttachmentsPanel';
-import PagosHistory from '@/components/historia/PagosHistory';
-import EmptyState from '@/components/historia/EmptyState';
+import { AttachmentsPanel, EmptyState, PagosHistory, PatientHeader, ProtocolosPanel, TratamientosList } from '@/components/historia';
 
 function HistoriaContent() {
   const params = useParams();
@@ -36,24 +31,20 @@ function HistoriaContent() {
   const todosDocumentos = historia.tratamientos?.flatMap((t) => t.documentos || []) || [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-canvas">
       <PatientHeader historia={historia} pacienteId={pacienteId} />
 
-      {/* Layout Principal: 3 columnas como en Luxe Medical */}
-      <div className="max-w-7xl mx-auto px-12 py-8">
-        <div className="grid grid-cols-12 gap-6">
-          
-          {/* Columna Principal: Timeline de Tratamientos (60%) */}
-          <div className="col-span-7">
+      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-12">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <section className="lg:col-span-7">
             {historia.tratamientos && historia.tratamientos.length > 0 ? (
               <TratamientosList tratamientos={historia.tratamientos} />
             ) : (
               <EmptyState pacienteId={pacienteId} />
             )}
-          </div>
+          </section>
 
-          {/* Columnas Derecha: Prescriptions, Attachments y Pagos (40%) */}
-          <div className="col-span-5 space-y-6">
+          <aside className="space-y-6 lg:col-span-5">
             <ProtocolosPanel 
               pacienteId={pacienteId}
             />
@@ -65,11 +56,10 @@ function HistoriaContent() {
             <PagosHistory 
               pacienteId={pacienteId}
             />
-          </div>
-
+          </aside>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

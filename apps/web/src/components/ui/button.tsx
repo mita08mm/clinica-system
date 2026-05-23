@@ -19,10 +19,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           
           // Variants
           {
-            'bg-morena text-white hover:bg-morena/90 focus-visible:ring-morena': variant === 'primary',
-            'bg-piel text-concreto hover:bg-piel/90 focus-visible:ring-piel': variant === 'secondary',
-            'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700': variant === 'outline',
-            'hover:bg-gray-100 text-gray-700': variant === 'ghost',
+            'btn-primary focus-visible:ring-[rgba(117,76,36,0.28)]': variant === 'primary',
+            'bg-piel-soft text-concreto hover:bg-[rgba(204,175,125,0.2)] focus-visible:ring-[rgba(204,175,125,0.35)]': variant === 'secondary',
+            'border border-sand bg-surface text-concreto hover:bg-surface-muted focus-visible:ring-[rgba(117,76,36,0.18)]': variant === 'outline',
+            'text-marengo hover:bg-surface-muted focus-visible:ring-[rgba(117,76,36,0.12)]': variant === 'ghost',
             'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600': variant === 'danger',
           },
           

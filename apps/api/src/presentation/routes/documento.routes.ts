@@ -54,11 +54,17 @@ const upload = multer({
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
+// GET /api/documentos
+router.get('/', DocumentoController.list);
+
 // POST /api/documentos/upload
 router.post('/upload', upload.single('file'), DocumentoController.upload);
 
 // GET /api/documentos/:id
 router.get('/:id', DocumentoController.getById);
+
+// PUT /api/documentos/:id
+router.put('/:id', DocumentoController.update);
 
 // GET /api/documentos/:id/download
 router.get('/:id/download', DocumentoController.download);

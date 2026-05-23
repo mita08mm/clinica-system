@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Protocolo } from '@/types/historia';
 import { apiEndpoint } from '@/lib/config';
 import { useAuth } from '@/contexts/AuthContext';
+import PanelFrame from '@/components/historia/panels/PanelFrame';
+import { Badge, Button, Input, Label, Select } from '@/components/ui';
 
 interface ProtocolosPanelProps {
   pacienteId: string;
@@ -35,7 +37,6 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
   const [error, setError] = useState('');
 
   // Formulario simplificado
-  const [nombre, setNombre] = useState('');
   const [items, setItems] = useState<ItemForm[]>([]);
   
   // Item actual (solo 3 campos)
@@ -128,8 +129,8 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!nombre.trim() || items.length === 0) {
-      setError('Ingrese un nombre y agregue al menos un producto');
+    if (items.length === 0) {
+      setError('Agregue al menos un producto');
       return;
     }
 
@@ -148,7 +149,7 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
 
       const payload = {
         pacienteId,
-        nombre: nombre.trim(),
+        nombre: buildProtocolName(items),
         items: itemsParaBackend,
       };
 
@@ -179,7 +180,6 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
       }
 
       // Limpiar y cerrar
-      setNombre('');
       setItems([]);
       setShowModal(false);
       
@@ -194,20 +194,20 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
 
   return (
     <>
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-serif font-light text-gray-900">Prescripciones</h2>
-          <button 
+      <PanelFrame
+        title="Prescripciones"
+        action={
+          <button
             onClick={() => setShowModal(true)}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-1.5 text-marengo transition-colors hover:bg-stone-100 hover:text-concreto"
             title="Agregar prescripción"
           >
-            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        </div>
-
+        }
+      >
         <div className="space-y-4">
           {isLoadingProtocolos ? (
             <div className="text-center py-8">
@@ -215,30 +215,35 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
               <p className="text-xs text-gray-400 mt-2">Cargando prescripciones...</p>
             </div>
           ) : protocolos.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-400 mb-1">Sin prescripciones activas</p>
-              <p className="text-xs text-gray-300">
-                Haga clic en + para agregar
-              </p>
+            <div className="rounded-lg bg-stone-50 px-4 py-8 text-center">
+              <p className="text-sm font-medium text-concreto">Sin prescripciones activas</p>
+              <p className="mt-1 text-xs text-marengo">Usa el boton + para registrar la primera.</p>
             </div>
           ) : (
             protocolos.slice(0, 5).map((protocolo) => (
-              <div key={protocolo.id} className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">{protocolo.nombre}</h4>
+              <div key={protocolo.id} className="rounded-lg border border-stone-100 px-4 py-4 last:pb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-medium text-concreto">{getProtocolDisplayName(protocolo)}</h4>
+                  </div>
+                  <Badge variant="default" className="px-2.5 py-1 text-[11px] font-semibold">
+                    {protocolo.items.length} item{protocolo.items.length === 1 ? '' : 's'}
+                  </Badge>
+                </div>
                 {protocolo.items.map((item) => (
-                  <div key={item.id} className="mb-3 last:mb-0 pl-3">
+                  <div key={item.id} className="mt-3 border-t border-stone-100 pt-3 first:mt-0 first:border-t-0 first:pt-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-sm text-gray-700">
-                          {item.producto.nombre} <span className="text-gray-400">x{item.cantidad}</span>
+                        <p className="text-sm text-concreto">
+                          {item.producto.nombre} <span className="text-marengo">x{item.cantidad}</span>
                         </p>
-                        <p className="text-xs text-gray-500 mt-1 italic">
+                        <p className="mt-1 text-xs italic text-marengo">
                           {item.aplicacion || item.frecuencia}
                         </p>
                       </div>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-lg flex-shrink-0 ${
-                        item.estado === 'COMPLETADO' 
-                          ? 'bg-gray-100 text-gray-600' 
+                      <span className={`flex-shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium ${
+                        item.estado === 'COMPLETADO'
+                          ? 'bg-gray-100 text-gray-600'
                           : 'bg-green-100 text-green-700'
                       }`}>
                         {item.estado === 'COMPLETADO' ? 'Finalizado' : 'Activo'}
@@ -251,16 +256,16 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
           )}
 
           {protocolos.length > 5 && (
-            <button className="w-full text-xs text-gray-500 hover:text-gray-700 pt-3 transition-colors">
+            <button className="w-full pt-1 text-xs text-marengo transition-colors hover:text-concreto">
               Ver todas las prescripciones →
             </button>
           )}
         </div>
-      </div>
+      </PanelFrame>
 
       {/* Modal simplificado - Solo 3 campos por producto */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-concreto/15 p-4 backdrop-blur-[2px]">
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
@@ -283,62 +288,45 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
                 </div>
               )}
 
-              {/* Nombre del protocolo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del Protocolo <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej: Rutina facial anti-edad"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
               {/* Productos agregados */}
               {items.length > 0 && (
-                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                  <h5 className="text-sm font-medium text-gray-700">Productos Agregados:</h5>
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-marengo">
+                    Recetado · {items.length} item{items.length === 1 ? '' : 's'}
+                  </p>
                   {items.map((item, index) => (
-                    <div key={index} className="flex items-start justify-between gap-3 bg-gray-50 p-3 rounded">
+                    <div key={index} className="flex items-start justify-between gap-3 rounded-lg bg-stone-50 px-3 py-2.5">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{item.nombre} <span className="text-gray-500">x{item.cantidad}</span></p>
-                        <p className="text-xs text-gray-600 mt-1 italic">{item.instrucciones}</p>
+                        <p className="text-sm font-medium text-concreto">{item.nombre} <span className="text-marengo">x{item.cantidad}</span></p>
+                        <p className="mt-1 text-xs italic text-marengo">{item.instrucciones}</p>
                       </div>
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleEliminarItem(index)}
-                        className="text-red-500 hover:text-red-700"
+                        variant="ghost"
+                        size="sm"
+                        className="px-2 py-1 text-red-600 hover:bg-red-50 hover:text-red-700"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Agregar producto - SOLO 3 CAMPOS */}
               <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-4">Agregar Producto</h4>
-                
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-4">
-                  {/* Campo 1: Producto */}
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Producto <span className="text-red-500">*</span>
-                    </label>
+                    <Label htmlFor="producto" required>Producto</Label>
                     {isLoadingProductos ? (
-                      <div className="text-sm text-gray-500">Cargando productos...</div>
+                      <div className="text-sm text-marengo">Cargando productos...</div>
                     ) : (
-                      <select
+                      <Select
+                        id="producto"
                         value={selectedProducto}
                         onChange={(e) => setSelectedProducto(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       >
                         <option value="">Seleccionar producto...</option>
                         {productos.map((p) => (
@@ -346,64 +334,60 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
                             {p.nombre} (Stock: {p.stock})
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     )}
                   </div>
 
-                  {/* Campo 2: Cantidad */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cantidad
-                    </label>
-                    <input
+                  <div className="grid grid-cols-[120px_1fr] gap-3 max-sm:grid-cols-1">
+                    <div>
+                    <Label htmlFor="cantidad">Cantidad</Label>
+                    <Input
+                      id="cantidad"
                       type="number"
                       min="1"
                       value={cantidad}
                       onChange={(e) => setCantidad(parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="instrucciones" required>Indicación</Label>
+                      <Input
+                        id="instrucciones"
+                        value={instrucciones}
+                        onChange={(e) => setInstrucciones(e.target.value)}
+                        placeholder="Ej: 2 veces al día por 30 días"
+                      />
+                    </div>
                   </div>
 
-                  {/* Campo 3: Instrucciones (reemplaza aplicacion + frecuencia + duracion) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Instrucciones <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={instrucciones}
-                      onChange={(e) => setInstrucciones(e.target.value)}
-                      placeholder="Ej: Aplicar 2 veces al día (mañana y noche) durante 30 días"
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <button
+                  <Button
                     type="button"
                     onClick={handleAgregarItem}
-                    className="btn-primary w-full"
+                    variant="primary"
+                    className="w-full"
                   >
-                    + Agregar Producto
-                  </button>
+                    Agregar a la receta
+                  </Button>
                 </div>
               </div>
 
               {/* Botones de acción */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="btn-secondary"
+                  variant="outline"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSaving || items.length === 0}
-                  className="btn-primary"
+                  variant="primary"
                 >
                   {isSaving ? 'Guardando...' : 'Guardar Prescripción'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -411,4 +395,28 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
       )}
     </>
   );
+}
+
+function buildProtocolName(items: ItemForm[]) {
+  if (items.length === 1) {
+    return items[0].nombre;
+  }
+
+  return `${items[0].nombre} y ${items.length - 1} mas`;
+}
+
+function getProtocolDisplayName(protocolo: Protocolo) {
+  if (protocolo.nombre?.trim()) {
+    return protocolo.nombre;
+  }
+
+  if (protocolo.items.length === 0) {
+    return 'Prescripción';
+  }
+
+  if (protocolo.items.length === 1) {
+    return protocolo.items[0].producto.nombre;
+  }
+
+  return `${protocolo.items[0].producto.nombre} y ${protocolo.items.length - 1} mas`;
 }

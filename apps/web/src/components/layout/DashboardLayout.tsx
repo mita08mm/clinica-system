@@ -3,7 +3,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import PersonIcon from '../icons/PersonIcon';
 import AppointmentIcon from '../icons/AppointmentIcon';
 import MoneyIcon from '../icons/MoneyIcon';
@@ -28,7 +27,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[#FBF9F8]">
+    <div className="min-h-screen bg-canvas">
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 w-64 sidebar flex flex-col">
         {/* Header */}
@@ -63,7 +62,7 @@ export default function DashboardLayout({
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-2 py-2
-                      text-[#50453B] hover:opacity-70 transition-all"
+                      text-cocoa-dark hover:opacity-70 transition-all"
           >
             <LogoutIcon className="w-5 h-5" />
             <span className="text-sm">Cerrar Sesión</span>

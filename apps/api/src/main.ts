@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
 import { PrismaClient } from '@clinica/database';
 
 const app = express();
@@ -14,7 +15,9 @@ const PORT = process.env.PORT || 4000;
 // ============================
 
 // Seguridad con helmet
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 // CORS
 app.use(cors({
@@ -25,6 +28,10 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Static files for uploaded images/documents
+const uploadsDir = process.env.UPLOADS_DIR || './uploads';
+app.use('/uploads', express.static(path.resolve(uploadsDir)));
 
 // Rate limiting (más permisivo en desarrollo)
 const limiter = rateLimit({

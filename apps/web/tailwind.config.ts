@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
   content: [
@@ -14,6 +15,18 @@ const config: Config = {
         morena: "#754c24",
         marengo: "#666666",
         concreto: "#333333",
+        canvas: "#FBF9F8",
+        surface: "#FBF7F4",
+        'surface-muted': "#FAF8F6",
+        sand: "#D7C5B9",
+        cocoa: "#60412B",
+        'cocoa-dark': "#50453B",
+        'cocoa-deep': "#3D2810",
+        'stone-warm': "#5F5955",
+        'beige-muted': "#F5F0EB",
+        'beige-soft': "#EEEAE7",
+        'beige-light': "#FEF4E4",
+        mist: "#CBCACA",
         
         // Variables de shadcn/ui adaptadas
         background: "hsl(var(--background))",
@@ -69,7 +82,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

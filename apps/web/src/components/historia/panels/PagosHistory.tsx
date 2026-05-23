@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiEndpoint } from '@/lib/config';
+import PanelFrame from './PanelFrame';
 
 interface PagosHistoryProps {
   pacienteId: string;
@@ -81,7 +82,7 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <PanelFrame title="Historial de Pagos">
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -89,16 +90,15 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
             <div className="h-12 bg-gray-100 rounded"></div>
           </div>
         </div>
-      </div>
+      </PanelFrame>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-serif font-light text-gray-900">Historial de Pagos</h2>
-        <span className="text-xs text-gray-500">{cobros.length} registros</span>
-      </div>
+    <PanelFrame
+      title="Historial de Pagos"
+      action={<span className="text-xs text-gray-500">{cobros.length} registros</span>}
+    >
 
       <div className="space-y-4">
         {cobrosAMostrar.length === 0 ? (
@@ -181,6 +181,6 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
           </button>
         )}
       </div>
-    </div>
+    </PanelFrame>
   );
 }

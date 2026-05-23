@@ -4,10 +4,14 @@
 @layer base {
   :root {
     /* Paleta oficial de la clínica */
-    --color-piel: #ccaf7d;
-    --color-morena: #754c24;
-    --color-marengo: #666666;
-    --color-concreto: #333333;
+    --brand-piel: #ccaf7d;
+    --brand-morena: #754c24;
+    --brand-marengo: #666666;
+    --brand-concreto: #333333;
+    --color-piel: var(--brand-piel);
+    --color-morena: var(--brand-morena);
+    --color-marengo: var(--brand-marengo);
+    --color-concreto: var(--brand-concreto);
     
     /* Fondos */
     --background: 0 0% 100%;
@@ -80,11 +84,64 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: "Playfair Display", serif;
     font-weight: 600;
-    line-height: 1.2;
-    color: var(--color-concreto);
+    line-height: 1.2
   }
 }
 @layer components {
+  .text-piel {
+    color: var(--color-piel);
+  }
+
+  .text-morena {
+    color: var(--color-morena);
+  }
+
+  .text-concreto {
+    color: var(--color-concreto);
+  }
+
+  .text-marengo {
+    color: var(--color-marengo);
+  }
+
+  .text-marengo-muted {
+    color: rgba(102, 102, 102, 0.8);
+  }
+
+  .bg-canvas {
+    background-color: #FBF9F8;
+  }
+
+  .bg-surface {
+    background-color: #FFFFFF;
+  }
+
+  .bg-surface-muted {
+    background-color: #FAF8F6;
+  }
+
+  .bg-piel-soft {
+    background-color: rgba(204, 175, 125, 0.12);
+  }
+
+  .border-sand {
+    border-color: rgba(215, 197, 185, 1);
+  }
+
+  .border-sand-soft {
+    border-color: rgba(215, 197, 185, 0.3);
+  }
+
+  .border-morena {
+    border-color: var(--color-morena);
+  }
+
+  .outline-morena-soft {
+    outline: 2px solid rgba(117, 76, 36, 0.2);
+    outline-offset: 0px;
+  }
+
+
   /* Botón principal con border-radius consistente */
   .btn-primary {
     background-color: #754c24;

@@ -7,6 +7,7 @@ interface ResumenTabProps {
 }
 
 export function ResumenTab({ historia, pacienteId }: ResumenTabProps) {
+  const isFemalePatient = historia.paciente?.sexo?.toUpperCase() === 'FEMENINO';
   const hasData =
     historia.objetivoEstetico ||
     historia.condicionesMedicas ||
@@ -51,7 +52,7 @@ export function ResumenTab({ historia, pacienteId }: ResumenTabProps) {
         <ResumenSection title="Alergias" content={historia.alergias} />
       )}
 
-      {historia.embarazoLactancia && (
+      {isFemalePatient && historia.embarazoLactancia && (
         <ResumenSection 
           title="Embarazo/Lactancia" 
           content="Sí" 

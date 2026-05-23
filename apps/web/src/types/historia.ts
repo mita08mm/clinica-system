@@ -44,12 +44,10 @@ export interface Protocolo {
 export interface Documento {
   id: string;
   nombre: string;
-  tipo: 'FOTO_FACIAL' | 'FOTO_CORPORAL' | 'FOTO_CAPILAR' | 'ESTUDIO_DERMATOLOGICO' | 'CONSENTIMIENTO_INFORMADO' | 'FORMULARIO_EVALUACION' | 'OTRO';
+  kind: 'FOTO' | 'DOCUMENTO';
   url: string;
   mimeType: string;
   tamaño: number;
-  categoria?: 'FRONTAL' | 'PERFIL_DERECHO' | 'PERFIL_IZQUIERDO' | 'LATERAL' | 'DETALLE' | 'COMPLETO';
-  momento?: 'ANTES' | 'DURANTE' | 'DESPUES' | 'CONTROL_1_SEMANA' | 'CONTROL_1_MES' | 'CONTROL_3_MESES' | 'CONTROL_6_MESES' | 'CONTROL_1_ANO';
   createdAt: string;
   descripcion?: string;
 }
