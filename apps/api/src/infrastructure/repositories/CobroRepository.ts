@@ -225,4 +225,34 @@ export class CobroRepository {
 
     return Number(cobro.total) - totalPagado;
   }
+
+  async findByFecha(fechaInicio: Date, fechaFin: Date): Promise<any[]> {
+    return this.prisma.cobro.findMany({
+      where: {
+        fecha: {
+          gte: fechaInicio,
+          lte: fechaFin,
+        },
+      },
+      include: {
+        paciente: { select: { id: true, nombre: true, apellido: true } },
+        pagos: true,
+      },
+      orderBy: { fecha: 'asc' },
+    });
+  }
+
+  async findPendientes(): Promise<any[]> {
+    return this.prisma.cobro.findMany({
+      where: {
+        estado: { in: ['PENDIENTE', 'PARCIAL'] },
+      },
+      include: {
+        paciente: { select: { id: true, nombre: true, apellido: true } },
+        pagos: true,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+  }
+
 }
