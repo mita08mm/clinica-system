@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PanelFrame, { PanelActionButton } from './PanelFrame';
 import {
   Button,
@@ -14,6 +14,9 @@ import {
   Overline,
 } from '@/shared/ui';
 import { usePacienteCobros, CobroRow } from '@/features/pacientes';
+import { useProductos, type Producto } from '@/features/inventario';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PagosHistoryProps {
   pacienteId: string;
@@ -25,8 +28,107 @@ interface CobroForm {
   pagado: string;
 }
 
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
 const initialForm: CobroForm = { titulo: '', costo: '', pagado: '' };
 const fmt = (n: number) => `Bs. ${n.toFixed(2)}`;
+
+// ─── ProductoCombobox ──────────────────────────────────────────────────────────
+
+interface ProductoComboboxProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (producto: Producto) => void;
+}
+
+function ProductoCombobox({ value, onChange, onSelect }: ProductoComboboxProps) {
+  const { productos, isLoading: isFetching } = useProductos();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter by query
+  const filtered = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return productos;
+    return productos.filter((p) => p.nombre.toLowerCase().includes(q));
+  }, [value, productos]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const showDropdown = isOpen && (isFetching || filtered.length > 0 || value.trim().length > 0);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        id="titulo"
+        value={value}
+        autoComplete="off"
+        placeholder="Ej: Limpieza facial, sérum reparador"
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+      />
+
+      {showDropdown && (
+        <div className="absolute z-50 mt-1 w-full overflow-auto rounded-md border border-neutral-200 bg-white shadow-lg max-h-56">
+          {isFetching ? (
+            <div className="flex items-center justify-center py-4">
+              <Spinner />
+            </div>
+          ) : filtered.length === 0 ? (
+            // No match → inform user they can keep typing freely
+            <div className="px-3 py-2.5 text-sm text-neutral-500">
+              No encontrado en inventario —{' '}
+              <span className="text-neutral-700 font-medium">se guardará como texto libre</span>
+            </div>
+          ) : (
+            filtered.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-neutral-50 transition-colors"
+                onMouseDown={(e) => {
+                  // Prevent input blur before we handle the click
+                  e.preventDefault();
+                  onSelect(p);
+                  setIsOpen(false);
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-neutral-900">{p.nombre}</p>
+                  <p className="text-xs text-neutral-500">
+                    {fmt(p.precio)}
+                    <span className="mx-1.5">·</span>
+                    Stock:{' '}
+                    <span className={p.stock === 0 ? 'text-danger font-semibold' : ''}>
+                      {p.stock}
+                    </span>
+                  </p>
+                </div>
+                <span className="ml-3 shrink-0 text-xs font-semibold text-neutral-400">
+                  {fmt(p.precio)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PagosHistory ──────────────────────────────────────────────────────────────
 
 export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
   const {
@@ -52,6 +154,15 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
     setShowModal(false);
     setForm(initialForm);
     setError('');
+  };
+
+  // Called when user picks a product from the combobox
+  const handleProductoSelect = (producto: Producto) => {
+    setForm((prev) => ({
+      ...prev,
+      titulo: producto.nombre,
+      costo: producto.precio.toFixed(2),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,18 +252,19 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
         <form id="cobro-form" onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="alert-danger text-xs">{error}</div>}
 
+          {/* ── Título (combobox con inventario) ── */}
           <div>
             <Label htmlFor="titulo" required>
               Título
             </Label>
-            <Input
-              id="titulo"
+            <ProductoCombobox
               value={form.titulo}
-              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-              placeholder="Ej: Limpieza facial, sérum reparador"
+              onChange={(v) => setForm({ ...form, titulo: v })}
+              onSelect={handleProductoSelect}
             />
           </div>
 
+          {/* ── Costo y Pagado ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="costo" required>
@@ -182,6 +294,7 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
             </div>
           </div>
 
+          {/* ── Preview ── */}
           <div className="grid grid-cols-2 gap-3 border-t border-neutral-100 pt-2">
             <PreviewRow label="Total" value={fmt(preview.total)} />
             <PreviewRow
@@ -195,6 +308,8 @@ export default function PagosHistory({ pacienteId }: PagosHistoryProps) {
     </PanelFrame>
   );
 }
+
+// ─── Sub-components (sin cambios) ──────────────────────────────────────────────
 
 function Totals({
   label,
