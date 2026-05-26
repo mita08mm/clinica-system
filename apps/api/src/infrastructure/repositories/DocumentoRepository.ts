@@ -5,6 +5,7 @@ export interface CreateDocumentoData {
   nombre: string;
   tipo: TipoDocumento;
   url: string;
+  publicId?: string;
 }
 
 export class DocumentoRepository {

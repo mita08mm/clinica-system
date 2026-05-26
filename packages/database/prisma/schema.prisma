@@ -427,6 +427,7 @@ model Documento {
   nombre     String
   tipo       TipoDocumento
   url        String
+  publicId   String?  
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 

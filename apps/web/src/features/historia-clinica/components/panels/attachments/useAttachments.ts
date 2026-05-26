@@ -5,6 +5,8 @@ import { useMemo, useRef, useState } from 'react';
 import { api } from '@/shared/api';
 import { Documento } from '@/features/historia-clinica/types';
 import { AttachmentUploadKind } from './attachments.types';
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 
 interface UseAttachmentsOptions {
   pacienteId: string;
@@ -32,16 +34,44 @@ export function useAttachments({
       return data ?? [];
     },
     initialData: initialDocumentos,
+    initialDataUpdatedAt: 0, // ← esto hace que siempre fetchee al montar
+    staleTime: 1000 * 60 * 5, // ← pero luego cachea 5 minutos
     enabled: Boolean(pacienteId),
   });
+  async function uploadToCloudinary(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
 
+    const tipo = file.type.startsWith('image/') ? 'image' : 'raw';
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${tipo}/upload`,
+      { method: 'POST', body: formData }
+    );
+
+    if (!res.ok) throw new Error('Error al subir a Cloudinary');
+
+    const data = await res.json();
+    return {
+      url: data.secure_url as string,
+      publicId: data.public_id as string,
+    };
+  }
   const uploadMut = useMutation({
-    mutationFn: async ({ file, kind }: { file: File; kind: AttachmentUploadKind }) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('pacienteId', pacienteId);
-      formData.append('kind', kind === 'fotos' ? 'FOTO' : 'DOCUMENTO');
-      return api.upload('/documentos/upload', formData);
+    mutationFn: async ({ url, publicId, kind, nombre }: {
+      url: string;
+      publicId: string;
+      kind: AttachmentUploadKind;
+      nombre: string;
+    }) => {
+      return api.post('/documentos', {
+        pacienteId,
+        url,
+        publicId,
+        kind: kind === 'fotos' ? 'FOTO' : 'DOCUMENTO',
+        nombre,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentosKey(pacienteId) });
@@ -61,7 +91,8 @@ export function useAttachments({
     if (!file) return;
     setError(null);
     try {
-      await uploadMut.mutateAsync({ file, kind });
+      const { url, publicId } = await uploadToCloudinary(file);
+      await uploadMut.mutateAsync({ url, publicId, kind, nombre: file.name });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Error al subir archivo');
     } finally {
