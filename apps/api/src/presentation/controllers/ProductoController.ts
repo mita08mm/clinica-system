@@ -12,7 +12,6 @@ const prisma = new PrismaClient();
 const productoRepository = new ProductoRepository(prisma);
 
 const createProductoSchema = z.object({
-  codigo: z.string().min(1, 'El código es requerido'),
   nombre: z.string().min(1, 'El nombre es requerido'),
   tipo: z.enum(['COSMECEUTICO', 'DERMOCOSMETICO', 'EQUIPO', 'INSUMO']),
   descripcion: z.string().optional(),

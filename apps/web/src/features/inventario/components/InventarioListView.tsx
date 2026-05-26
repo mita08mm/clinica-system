@@ -50,6 +50,7 @@ export function InventarioListView() {
     () => productos.reduce((sum, p) => sum + p.precio * p.stock, 0),
     [productos],
   );
+  
 
   const handleSaveStock = async () => {
     if (!editing) return;

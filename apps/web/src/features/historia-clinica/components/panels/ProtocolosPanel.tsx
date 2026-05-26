@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import PanelFrame, { PanelActionButton } from './PanelFrame';
-import { Button, Input, Label, Modal, Spinner, PlusIcon, CloseIcon, BodyStrong } from '@/shared/ui';
+import { Button, Input, Label, Modal, Spinner, PlusIcon, CloseIcon, BodyStrong, SearchIcon } from '@/shared/ui';
 import { usePacienteProtocolos, NuevaPrescripcionItem } from '@/features/pacientes';
+import { useProductos } from '@/features/inventario';
 
 interface ProtocolosPanelProps {
   pacienteId: string;
@@ -17,28 +18,54 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
     crearPrescripcion,
   } = usePacienteProtocolos(pacienteId);
 
+  const { productos } = useProductos();
+
   const [showModal, setShowModal] = useState(false);
   const [items, setItems] = useState<NuevaPrescripcionItem[]>([]);
-  const [nombre, setNombre] = useState('');
   const [indicaciones, setIndicaciones] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [selectedProducto, setSelectedProducto] = useState<{ id: string; nombre: string } | null>(null);
+  const [productoQuery, setProductoQuery] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [esExterno, setEsExterno] = useState(false);
+  const [nombreExterno, setNombreExterno] = useState('');
+
+  const productosFiltrados = useMemo(
+    () => productos.filter((p) =>
+      p.nombre.toLowerCase().includes(productoQuery.toLowerCase())
+    ),
+    [productos, productoQuery],
+  );
+
   const closeModal = () => {
     setShowModal(false);
     setItems([]);
-    setNombre('');
     setIndicaciones('');
     setError('');
+    setSelectedProducto(null);
+    setProductoQuery('');
+    setDropdownOpen(false);
+    setEsExterno(false);
+    setNombreExterno('');
   };
 
   const addItem = () => {
-    if (!nombre.trim() || !indicaciones.trim()) {
-      setError('Ingrese nombre e indicaciones');
+    const nombreFinal = esExterno
+      ? nombreExterno.trim()
+      : selectedProducto?.nombre ?? '';
+
+    if (!nombreFinal || !indicaciones.trim()) {
+      setError(!nombreFinal ? 'Seleccioná o ingresá un producto' : 'Ingresá las indicaciones');
       return;
     }
-    setItems([...items, { nombre: nombre.trim(), indicaciones: indicaciones.trim() }]);
-    setNombre('');
+
+    setItems([...items, { nombre: nombreFinal, indicaciones: indicaciones.trim() }]);
+    setSelectedProducto(null);
+    setNombreExterno('');
+    setEsExterno(false);
+    setProductoQuery('');
     setIndicaciones('');
     setError('');
   };
@@ -91,7 +118,7 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
       ) : (
         <ul className="divide-y divide-neutral-100">
           {visible.map((p) => (
-            <li key={p.id} className="px-5 py-4">
+            <li key={p.id} className="px-4 py-4 sm:px-5">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="body-strong truncate text-neutral-900">
                   {p.nombre ?? 'Prescripción'}
@@ -125,7 +152,7 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
         description="Agrega los productos y sus indicaciones"
         footer={
           <>
-            <Button type="button" variant="outline" onClick={closeModal}>
+            <Button type="button" variant="outline" onClick={closeModal} className="flex-1 sm:flex-none">
               Cancelar
             </Button>
             <Button
@@ -134,6 +161,7 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
               variant="primary"
               isLoading={isSaving}
               disabled={items.length === 0}
+              className="flex-1 sm:flex-none"
             >
               Guardar
             </Button>
@@ -143,34 +171,144 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
         <form id="prescripcion-form" onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="alert-danger text-xs">{error}</div>}
 
-          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_1.5fr_auto]">
-            <div>
-              <Label htmlFor="prod-nombre" required>
-                Producto
-              </Label>
-              <Input
-                id="prod-nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Protector solar"
-              />
+          <div className="space-y-3">
+
+            {/* ── PRODUCTO: ancho completo ── */}
+            <div className="relative">
+              <Label required>Producto</Label>
+
+              {/* Caso 1: producto del inventario seleccionado → chip grande */}
+              {!esExterno && selectedProducto ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border-2 border-neutral-200 bg-neutral-50 px-4 py-3 sm:px-5 sm:py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-lg sm:h-11 sm:w-11 sm:text-xl">
+                      📦
+                    </div>
+                    <span className="truncate text-sm font-semibold text-neutral-900 sm:text-lg">
+                      {selectedProducto.nombre}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProducto(null)}
+                    className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700"
+                  >
+                    <CloseIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+              /* Caso 2: producto externo → input libre */
+              ) : esExterno ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    autoFocus
+                    value={nombreExterno}
+                    onChange={(e) => setNombreExterno(e.target.value)}
+                    placeholder="Nombre del producto externo"
+                    className="flex-1 text-sm sm:text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setEsExterno(false); setNombreExterno(''); }}
+                    className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700"
+                    title="Cancelar"
+                  >
+                    <CloseIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+              /* Caso 3: buscador del inventario */
+              ) : (
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-neutral-400">
+                    <SearchIcon className="h-4 w-4" />
+                  </span>
+                  <Input
+                    value={productoQuery}
+                    onChange={(e) => { setProductoQuery(e.target.value); setDropdownOpen(true); }}
+                    onFocus={() => setDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+                    placeholder="Buscar producto en inventario..."
+                    className="pl-9 text-sm sm:text-base"
+                    autoComplete="off"
+                  />
+                  {dropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-neutral-200 bg-white shadow-lg">
+                      <p className="px-3 pb-1 pt-2 text-xs font-medium text-neutral-400">
+                        Sugerencias del inventario
+                      </p>
+                      <ul className="max-h-52 overflow-y-auto sm:max-h-48">
+                        {productosFiltrados.length === 0 ? (
+                          <li className="px-3 py-3 text-sm text-neutral-400">Sin resultados</li>
+                        ) : (
+                          productosFiltrados.map((p) => (
+                            <li key={p.id} className="border-t border-neutral-100 first:border-0">
+                              <button
+                                type="button"
+                                onMouseDown={() => {
+                                  setSelectedProducto({ id: p.id, nombre: p.nombre });
+                                  setProductoQuery('');
+                                  setDropdownOpen(false);
+                                }}
+                                className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-neutral-50 sm:py-2.5"
+                              >
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-100 sm:h-8 sm:w-8">
+                                  <span className="text-base sm:text-sm">📦</span>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-semibold text-neutral-900">{p.nombre}</p>
+                                  <p className="text-xs text-neutral-400">{p.unidad}</p>
+                                </div>
+                                <span className={`shrink-0 text-xs font-medium ${p.stock <= p.stockMinimo ? 'text-danger' : 'text-success'}`}>
+                                  Stock: {p.stock}
+                                </span>
+                                <PlusIcon className="h-4 w-4 shrink-0 text-neutral-400" />
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                      <div className="border-t border-neutral-100">
+                        <button
+                          type="button"
+                          onMouseDown={() => { setEsExterno(true); setDropdownOpen(false); setProductoQuery(''); }}
+                          className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-[#c8855a] hover:bg-orange-50 sm:py-2.5"
+                        >
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-current text-xs leading-none">+</span>
+                          Agregar producto externo (no está en el inventario)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <Label htmlFor="prod-ind" required>
-                Indicaciones
-              </Label>
-              <Input
-                id="prod-ind"
-                value={indicaciones}
-                onChange={(e) => setIndicaciones(e.target.value)}
-                placeholder="Ej: Aplicar en la mañana"
-              />
+
+            {/* ── INDICACIONES + AGREGAR: columna en mobile, fila en desktop ── */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Label htmlFor="prod-ind" required>Indicaciones</Label>
+                <Input
+                  id="prod-ind"
+                  value={indicaciones}
+                  onChange={(e) => setIndicaciones(e.target.value)}
+                  placeholder="Ej: Aplicar en la mañana"
+                  className="text-sm sm:text-base"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addItem}
+                className="w-full sm:w-auto"
+              >
+                Agregar
+              </Button>
             </div>
-            <Button type="button" variant="secondary" onClick={addItem}>
-              Agregar
-            </Button>
+
           </div>
 
+          {/* ── LISTA DE ITEMS ── */}
           <section>
             <p className="mb-2 overline">Items ({items.length})</p>
             {items.length === 0 ? (
@@ -178,15 +316,15 @@ export default function ProtocolosPanel({ pacienteId }: ProtocolosPanelProps) {
             ) : (
               <ul className="divide-y divide-neutral-100 overflow-hidden rounded-md border border-neutral-200">
                 {items.map((it, i) => (
-                  <li key={i} className="flex items-start gap-3 px-3 py-2">
+                  <li key={i} className="flex items-start gap-3 px-3 py-3 sm:py-2">
                     <div className="min-w-0 flex-1">
-                      <p className="body-strong truncate text-neutral-900">{it.nombre}</p>
+                      <p className="body-strong truncate text-sm text-neutral-900 sm:text-base">{it.nombre}</p>
                       <p className="text-xs text-neutral-600">{it.indicaciones}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeItem(i)}
-                      className="hover:text-danger p-1 text-neutral-400 transition-colors"
+                      className="hover:text-danger shrink-0 rounded-full p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100"
                       aria-label="Quitar"
                     >
                       <CloseIcon className="h-4 w-4" />
