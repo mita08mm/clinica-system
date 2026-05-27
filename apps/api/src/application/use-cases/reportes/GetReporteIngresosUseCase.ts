@@ -1,9 +1,14 @@
 import { PrismaClient } from '@clinica/database';
+import { appCache } from '../../../infrastructure/config/cache';
 
 export class GetReporteIngresosUseCase {
   constructor(private prisma: PrismaClient) {}
 
   async execute(fechaInicio: string, fechaFin: string) {
+    const cacheKey = `reporte_ingresos_${fechaInicio}_${fechaFin}`;
+    const cached = appCache.get(cacheKey);
+    if (cached) return cached as any;
+
     const where = {
       fecha: { gte: new Date(fechaInicio), lte: new Date(fechaFin) },
       estado: { not: 'CANCELADO' as const },
@@ -42,11 +47,14 @@ export class GetReporteIngresosUseCase {
     const ingresosNum = Number(totalIngresos ?? 0);
     const pagosNum = Number(totalPagos ?? 0);
 
-    return {
+    const result = {
       totalIngresos: ingresosNum,
       totalPagos: pagosNum,
       totalPendiente: ingresosNum - pagosNum,
       cobrosPorMes: Object.entries(porMes).map(([mes, total]) => ({ mes, total })),
     };
+
+    appCache.set(cacheKey, result, 900);
+    return result;
   }
 }

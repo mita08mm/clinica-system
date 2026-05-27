@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { PrismaClient } from '@clinica/database';
+import { ProductoRepository } from './infrastructure/repositories/ProductoRepository';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -154,6 +155,16 @@ const server = app.listen(PORT, () => {
   console.log(` Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(` Base de datos: ${prisma ? 'Conectada' : 'Desconectada'}`);
   console.log(` CORS habilitado para: ${process.env.CORS_ORIGIN}`);
+
+  // Cache warming para productos
+  const productoRepository = new ProductoRepository(prisma);
+  try {
+    productoRepository.findAll(true).then(() => {
+      console.log('Cache de productos precargada exitosamente.');
+    });
+  } catch (error) {
+    console.error('Error precargando caché de productos:', error);
+  }
 });
 
 // Graceful shutdown

@@ -45,8 +45,11 @@ export class PacienteRepository {
     });
   }
 
-  async findAll(): Promise<Paciente[]> {
+  async findAll(page: number = 1, limit: number = 50): Promise<Paciente[]> {
+    const skip = (page - 1) * limit;
     return this.prisma.paciente.findMany({
+      skip,
+      take: limit,
       orderBy: {
         createdAt: 'desc',
       },

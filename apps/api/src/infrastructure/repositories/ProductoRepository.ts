@@ -1,4 +1,5 @@
 import { PrismaClient, Producto } from '@clinica/database';
+import { appCache } from '../config/cache';
 
 interface CreateProductoInput {
   codigo: string;
@@ -29,7 +30,7 @@ export class ProductoRepository {
   constructor(private prisma: PrismaClient) {}
 
   async create(data: CreateProductoInput): Promise<Producto> {
-    return this.prisma.producto.create({
+    const producto = await this.prisma.producto.create({
       data: {
         codigo: data.codigo,
         nombre: data.nombre,
@@ -42,15 +43,24 @@ export class ProductoRepository {
         principioActivo: data.principioActivo,
       },
     });
+    appCache.del('productos_all');
+    return producto;
   }
 
   async findAll(includeInactive = false): Promise<Producto[]> {
-    return this.prisma.producto.findMany({
+    const cacheKey = `productos_all_${includeInactive}`;
+    const cached = appCache.get<Producto[]>(cacheKey);
+    if (cached) return cached;
+
+    const productos = await this.prisma.producto.findMany({
       where: includeInactive ? {} : { activo: true },
       orderBy: {
         nombre: 'asc',
       },
     });
+
+    appCache.set(cacheKey, productos, 3600);
+    return productos;
   }
 
   async findById(id: string): Promise<Producto | null> {
@@ -88,10 +98,13 @@ export class ProductoRepository {
   }
 
   async update(id: string, data: UpdateProductoInput): Promise<Producto> {
-    return this.prisma.producto.update({
+    const producto = await this.prisma.producto.update({
       where: { id },
       data,
     });
+    appCache.del('productos_all_false');
+    appCache.del('productos_all_true');
+    return producto;
   }
 
   async updateStock(id: string, cantidad: number): Promise<Producto> {
@@ -105,20 +118,26 @@ export class ProductoRepository {
       throw new Error('Stock insuficiente');
     }
 
-    return this.prisma.producto.update({
+    const updated = await this.prisma.producto.update({
       where: { id },
       data: {
         stock: nuevoStock,
       },
     });
+    appCache.del('productos_all_false');
+    appCache.del('productos_all_true');
+    return updated;
   }
 
   async delete(id: string): Promise<Producto> {
-    return this.prisma.producto.update({
+    const producto = await this.prisma.producto.update({
       where: { id },
       data: {
         activo: false,
       },
     });
+    appCache.del('productos_all_false');
+    appCache.del('productos_all_true');
+    return producto;
   }
 }

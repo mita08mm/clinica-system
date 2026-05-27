@@ -3,7 +3,7 @@ import { CitaRepository } from '../../../infrastructure/repositories/CitaReposit
 export class GetCitasUseCase {
   constructor(private citaRepository: CitaRepository) {}
 
-  async execute() {
-    return this.citaRepository.findAll();
+  async execute(page: number = 1, limit: number = 50) {
+    return this.citaRepository.findAll(page, limit);
   }
 }

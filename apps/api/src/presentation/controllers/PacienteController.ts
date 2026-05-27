@@ -94,9 +94,11 @@ export class PacienteController {
     }
   };
 
-  getAll = async (_req: Request, res: Response): Promise<void> => {
+  getAll = async (req: Request, res: Response): Promise<void> => {
     try {
-      const pacientes = await this.getPacientesUseCase.execute();
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const pacientes = await this.getPacientesUseCase.execute(page, limit);
 
       res.status(200).json({
         success: true,
@@ -105,7 +107,7 @@ export class PacienteController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: 'Error al obtener pacientes',
+        error: error instanceof Error ? error.message : 'Error al obtener pacientes',
       });
     }
   };

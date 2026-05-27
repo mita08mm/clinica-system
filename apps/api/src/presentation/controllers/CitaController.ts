@@ -90,6 +90,8 @@ export class CitaController {
   getAll = async (req: Request, res: Response): Promise<void> => {
     try {
       const { pacienteId, fecha } = req.query;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
 
       let citas;
 
@@ -98,7 +100,7 @@ export class CitaController {
       } else if (fecha && typeof fecha === 'string') {
         citas = await this.getCitasByFechaUseCase.execute(new Date(fecha));
       } else {
-        citas = await this.getCitasUseCase.execute();
+        citas = await this.getCitasUseCase.execute(page, limit);
       }
 
       res.status(200).json({

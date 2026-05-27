@@ -1,9 +1,14 @@
 import { PrismaClient } from '@clinica/database';
+import { appCache } from '../../../infrastructure/config/cache';
 
 export class GetReportePagosUseCase {
   constructor(private prisma: PrismaClient) {}
 
   async execute() {
+    const cacheKey = 'reporte_pagos_all';
+    const cached = appCache.get(cacheKey);
+    if (cached) return cached as any;
+
     // Una query con aggregation en la DB
     const cobros = await this.prisma.cobro.findMany({
       where: { estado: { in: ['PENDIENTE', 'PARCIAL'] } },
@@ -33,10 +38,13 @@ export class GetReportePagosUseCase {
     const totalDeuda = resultado.reduce((s, c) => s + c.saldo, 0);
     const pacientesUnicos = new Set(cobros.map(c => c.pacienteId));
 
-    return {
+    const result = {
       totalDeuda,
       pacientesConDeuda: pacientesUnicos.size,
       cobros: resultado,
     };
+
+    appCache.set(cacheKey, result, 900);
+    return result;
   }
 }

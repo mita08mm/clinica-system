@@ -40,8 +40,11 @@ export class CitaRepository {
     });
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 50) {
+    const skip = (page - 1) * limit;
     return this.prisma.cita.findMany({
+      skip,
+      take: limit,
       include: {
         paciente: {
           select: {

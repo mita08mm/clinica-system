@@ -154,33 +154,30 @@ export class CobroRepository {
   async registrarPago(pagoInput: CreatePagoInput): Promise<any> {
     const cobro = await this.prisma.cobro.findUnique({
       where: { id: pagoInput.cobroId },
-      include: { pagos: true },
+      select: { id: true, total: true }, // Select only necessary fields
     });
 
     if (!cobro) {
       throw new Error('Cobro no encontrado');
     }
 
-    // Calcular total pagado actual
-    const totalPagado = cobro.pagos.reduce((sum, pago) => {
-      return sum + Number(pago.monto);
-    }, 0);
-
-    // Calcular nuevo total pagado
-    const nuevoTotalPagado = totalPagado + pagoInput.monto;
-
-    // Determinar nuevo estado
-    let nuevoEstado: EstadoCobro;
-    if (nuevoTotalPagado >= Number(cobro.total)) {
-      nuevoEstado = 'PAGADO';
-    } else if (nuevoTotalPagado > 0) {
-      nuevoEstado = 'PARCIAL';
-    } else {
-      nuevoEstado = 'PENDIENTE';
-    }
-
-    // Crear pago y actualizar cobro en una transacción
     return this.prisma.$transaction(async (tx) => {
+      const { _sum: { monto: totalPagado } } = await tx.pago.aggregate({
+        where: { cobroId: pagoInput.cobroId },
+        _sum: { monto: true },
+      });
+
+      const nuevoTotalPagado = Number(totalPagado ?? 0) + pagoInput.monto;
+
+      let nuevoEstado: EstadoCobro;
+      if (nuevoTotalPagado >= Number(cobro.total)) {
+        nuevoEstado = 'PAGADO';
+      } else if (nuevoTotalPagado > 0) {
+        nuevoEstado = 'PARCIAL';
+      } else {
+        nuevoEstado = 'PENDIENTE';
+      }
+
       const pago = await tx.pago.create({
         data: pagoInput,
       });
@@ -212,18 +209,19 @@ export class CobroRepository {
   async getSaldoPendiente(cobroId: string): Promise<number> {
     const cobro = await this.prisma.cobro.findUnique({
       where: { id: cobroId },
-      include: { pagos: true },
+      select: { id: true, total: true }, // Select only necessary fields
     });
 
     if (!cobro) {
       throw new Error('Cobro no encontrado');
     }
 
-    const totalPagado = cobro.pagos.reduce((sum, pago) => {
-      return sum + Number(pago.monto);
-    }, 0);
+    const { _sum: { monto: totalPagado } } = await this.prisma.pago.aggregate({
+      where: { cobroId },
+      _sum: { monto: true },
+    });
 
-    return Number(cobro.total) - totalPagado;
+    return Number(cobro.total) - Number(totalPagado ?? 0);
   }
 
   async findByFecha(fechaInicio: Date, fechaFin: Date): Promise<any[]> {
