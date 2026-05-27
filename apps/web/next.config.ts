@@ -6,17 +6,14 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
-  // Static export para Cloudflare Pages
-  output: "export",
+  // Salida standalone para Node.js deployment en Render
+  output: "standalone",
   // Quitar header X-Powered-By: Next.js (menos huella + un byte menos)
   poweredByHeader: false,
-  // Trailing slash para static hosting
-  trailingSlash: true,
   reactStrictMode: true,
   
   // Configuración de imágenes remotas
   images: {
-    unoptimized: true, // Required for static export
     remotePatterns: [
       {
         protocol: 'https',
