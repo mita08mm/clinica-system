@@ -1,0 +1,9 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "essenza-skin"
+compatibility_date = "2024-11-21"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".open-next/worker"
+
+# Environment variables
+[vars]
+NEXT_PUBLIC_API_URL = "https://essenza-skin-api.onrender.com"
