@@ -108,10 +108,6 @@ function safeJsonParse(text: string): unknown {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Métodos HTTP
-// ---------------------------------------------------------------------------
-
 async function get<T>(path: string, options?: ApiOptions): Promise<T> {
   const response = await fetch(buildUrl(path, options?.params), {
     method: 'GET',

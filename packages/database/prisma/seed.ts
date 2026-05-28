@@ -8,12 +8,13 @@ async function main() {
 
   console.log('\nCreando usuarios del sistema...');
 
-  const adminPassword = await bcrypt.hash('Sol20#@.Cli', 10);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || '';
+  const adminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || '', 10);
   const admin = await prisma.usuario.upsert({
-    where: { email: 'cecile.arce@gmail.com' },
+    where: { email: adminEmail },
     update: {},
     create: { 
-      email: 'cecile.arce@gmail.com',
+      email: adminEmail,
       password: adminPassword,
       rol: 'ADMIN',
       nombre: 'Cecile',
@@ -23,12 +24,13 @@ async function main() {
   });
   console.log('Admin creado:', admin.email);
 
-  const medicoPassword = await bcrypt.hash('DocBlue#24', 10);
+  const medicoEmail = process.env.SEED_MEDICO_EMAIL || '';
+  const medicoPassword = await bcrypt.hash(process.env.SEED_MEDICO_PASSWORD || '', 10);
   const medico = await prisma.usuario.upsert({
-    where: { email: 'cecile.derpic@gmail.com' },
+    where: { email: medicoEmail },
     update: {},
     create: {
-      email: 'cecile.derpic@gmail.com',
+      email: medicoEmail,
       password: medicoPassword,
       rol: 'MEDICO',
       nombre: 'Cecile',
@@ -38,12 +40,13 @@ async function main() {
   });
   console.log('Médico creado:', medico.email);
 
-  const recepPassword = await bcrypt.hash('Recep&Green99', 10);
+  const recepEmail = process.env.SEED_RECEP_EMAIL || '';
+  const recepPassword = await bcrypt.hash(process.env.SEED_RECEP_PASSWORD || '', 10);
   const recepcionista = await prisma.usuario.upsert({
-    where: { email: 'ana.gonzalez@clinica.com' },
+    where: { email: recepEmail },
     update: {},
     create: {
-      email: 'ana.gonzalez@clinica.com',
+      email: recepEmail,
       password: recepPassword,
       rol: 'RECEPCIONISTA',
       nombre: 'Ana',
@@ -57,9 +60,9 @@ async function main() {
   console.log('Resumen:');
   console.log('  - 3 usuarios (Admin, Médico, Recepcionista)');
   console.log('\n🔑 Credenciales de acceso:');
-  console.log('  Admin:         cecile.arce@gmail.com / Sol20#@.Cli');
-  console.log('  Médico:        dra.mlopez@clinica.com / DocBlue#24');
-  console.log('  Recepcionista: ana.gonzalez@clinica.com / Recep&Green99');
+  console.log('  Admin:        ', process.env.SEED_ADMIN_EMAIL, '/', process.env.SEED_ADMIN_PASSWORD);
+  console.log('  Médico:       ', process.env.SEED_MEDICO_EMAIL, '/', process.env.SEED_MEDICO_PASSWORD);
+  console.log('  Recepcionista:', process.env.SEED_RECEP_EMAIL, '/', process.env.SEED_RECEP_PASSWORD);
 }
 
 main()
