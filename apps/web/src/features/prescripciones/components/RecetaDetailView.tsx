@@ -53,7 +53,7 @@ export function RecetaDetailView({ recetaId }: { recetaId: string }) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await api.get(`/protocolos/${recetaId}`);
+        const data = await api.get(`/prescripciones/${recetaId}`);
         setPrescripcion(normalize(data));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -81,7 +81,7 @@ export function RecetaDetailView({ recetaId }: { recetaId: string }) {
         overline="Recetas"
         title="Prescripción"
         subtitle={prescripcion.nombre}
-        backHref="/recetas"
+        backHref="/prescripciones"
         actions={
           <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
             Imprimir

@@ -160,7 +160,7 @@ const cols: Column<Prescripcion>[] = [
     align: 'right',
     render: (p) => (
       <Link
-        href={`/recetas/${p.id}`}
+        href={`/prescripciones/${p.id}`}
         className="text-brand-morena inline-flex h-7 items-center rounded-md px-2.5 text-xs font-medium opacity-0 transition-colors group-hover:opacity-100 hover:bg-[rgba(204,175,125,0.18)]"
       >
         Ver
@@ -172,7 +172,7 @@ const cols: Column<Prescripcion>[] = [
 function CardItem({ prescripcion }: { prescripcion: Prescripcion }) {
   return (
     <Link
-      href={`/recetas/${prescripcion.id}`}
+      href={`/prescripciones/${prescripcion.id}`}
       className="surface block p-4 transition-colors hover:border-neutral-300"
     >
       <div className="mb-2 flex items-start justify-between gap-3">
