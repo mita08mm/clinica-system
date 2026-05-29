@@ -176,6 +176,9 @@ export default function CalendarioCitas({ citas = [], onDiaClick }: CalendarioCi
   function abrirDia(fecha: Date) {
     if (onDiaClick) {
       onDiaClick(fecha);
+    } else {
+      const key = dateKey(fecha);
+      window.location.href = `/citas/nueva?fecha=${key}`;
     }
   }
 
@@ -203,12 +206,17 @@ export default function CalendarioCitas({ citas = [], onDiaClick }: CalendarioCi
             const citasDia = citasPorDia[key] || [];
             const esHoy = key === hoyKey;
             const otroMes = dia.getMonth() !== mesActual;
+            const hoyInicio = new Date(); hoyInicio.setHours(0,0,0,0);
+            const esPasado = dia < hoyInicio;
 
             return (
               <div
                 key={i}
-                onClick={() => abrirDia(dia)}
-                className={`relative flex min-h-[60px] cursor-pointer flex-col border-r border-b border-gray-100/80 p-1 transition-colors sm:min-h-[110px] sm:p-2 ${esHoy ? 'z-10 bg-[#FBF7F4]/40 ring-1 ring-[#60412B]/30' : 'bg-white hover:bg-[#FBF7F4]/20'} `}
+                onClick={() => !esPasado && abrirDia(dia)}
+                className={`relative flex min-h-[60px] flex-col border-r border-b border-gray-100/80 p-1 transition-colors sm:min-h-[110px] sm:p-2
+                  ${esPasado ? 'cursor-not-allowed bg-gray-50 opacity-50' : 'cursor-pointer'}
+                  ${esHoy ? 'z-10 bg-[#FBF7F4]/40 ring-1 ring-[#60412B]/30' : !esPasado ? 'bg-white hover:bg-[#FBF7F4]/20' : ''}
+                `}
               >
                 <div className="flex items-start justify-between">
                   <span

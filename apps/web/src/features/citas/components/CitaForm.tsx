@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { PageHeader } from '@/shared/layout/PageHeader';
 import { FormSection, FormField } from '@/shared/forms/FormSection';
 import DatePicker from '@/shared/ui/DatePicker';
@@ -18,6 +17,7 @@ import {
 import { api } from '@/shared/api';
 import { diaSemanaLabel, hayConflicto, toMinutes } from '../lib/horario';
 import { DisponibilidadTimeline, type CitaDelDia } from './DisponibilidadTimeline';
+import { TimePicker, addOneHour } from '@/shared/ui/TimePicker';
 
 interface Paciente {
   id: string;
@@ -43,7 +43,6 @@ interface Props {
 }
 
 export function CitaForm({ mode, citaId }: Props) {
-  
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEdit = mode === 'edit';
@@ -77,8 +76,7 @@ export function CitaForm({ mode, citaId }: Props) {
     let horaFin = '';
     if (horaParam) {
       horaInicio = horaParam.slice(0, 5);
-      const [h, m] = horaInicio.split(':').map(Number);
-      horaFin = `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      horaFin = addOneHour(horaInicio);
     }
     return {
       pacienteId: '',
@@ -175,12 +173,18 @@ export function CitaForm({ mode, citaId }: Props) {
       setFormData((prev) => ({ ...prev, pacienteId: paramId }));
     }
   }, [pacientes]);
+
+  // handleChange unificado — también auto-calcula horaFin cuando cambia horaInicio
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     setError('');
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'horaInicio') next.horaFin = addOneHour(value);
+      return next;
+    });
     if (name === 'fecha') actualizarFechaLabel(value);
   };
 
@@ -298,28 +302,28 @@ export function CitaForm({ mode, citaId }: Props) {
                 minDate={isEdit ? undefined : new Date()}
               />
             </FormField>
-            <FormField label="Hora inicio" required>
-              <input
-                type="time"
-                name="horaInicio"
-                value={formData.horaInicio}
-                onChange={handleChange}
-                className={conflicto ? inputConflict : inputBase}
-                required
-                disabled={isLoading}
-              />
-            </FormField>
-            <FormField label="Hora fin" required>
-              <input
-                type="time"
-                name="horaFin"
-                value={formData.horaFin}
-                onChange={handleChange}
-                className={conflicto ? inputConflict : inputBase}
-                required
-                disabled={isLoading}
-              />
-            </FormField>
+
+            <TimePicker
+              label="Hora inicio"
+              value={formData.horaInicio}
+              onChange={(v) =>
+                handleChange({ target: { name: 'horaInicio', value: v } } as React.ChangeEvent<HTMLInputElement>)
+              }
+              required
+              disabled={isLoading}
+              hasConflict={!!conflicto}
+            />
+
+            <TimePicker
+              label="Hora fin"
+              value={formData.horaFin}
+              onChange={(v) =>
+                handleChange({ target: { name: 'horaFin', value: v } } as React.ChangeEvent<HTMLInputElement>)
+              }
+              required
+              disabled={isLoading}
+              hasConflict={!!conflicto}
+            />
           </div>
 
           {formData.fecha && (

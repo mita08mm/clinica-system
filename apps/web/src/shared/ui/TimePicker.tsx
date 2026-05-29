@@ -1,196 +1,129 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { cn } from '@/shared/utils';
-import { Input } from './input';
-import { Label } from './label';
-
 interface TimePickerProps {
-  label?: string;
-  name?: string;
-  value?: string; // "HH:mm" format
-  onChange?: React.ChangeEventHandler<HTMLInputElement>;
-  required?: boolean;
+  label: string;
+  value: string; // "HH:MM" formato 24h
+  onChange: (value: string) => void;
   disabled?: boolean;
-  error?: string;
-  hint?: string;
-  /** Hora mínima permitida (HH:mm), ej: "06:00" */
-  minTime?: string;
-  /** Hora máxima permitida (HH:mm), ej: "22:00" */
-  maxTime?: string;
-  /** Mostrar botones de incremento rápido */
-  showQuickButtons?: boolean;
-  /** Intervalos para botones rápidos (en minutos) */
-  intervals?: number[];
-  className?: string;
+  required?: boolean;
+  hasConflict?: boolean;
 }
 
-const DEFAULT_MIN = '06:00';
-const DEFAULT_MAX = '22:00';
-const DEFAULT_INTERVALS = [5, 10, 15, 30];
-
-/** Convierte "HH:mm" a minutos desde medianoche */
-function toMinutes(time: string): number {
-  if (!time || !/^\d{2}:\d{2}$/.test(time)) return 0;
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+function to24(hour: number, minute: number, ampm: 'AM' | 'PM'): string {
+  let h = hour;
+  if (ampm === 'PM' && h < 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-/** Convierte minutos desde medianoche a "HH:mm" */
-function toTimeString(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+function from24(value: string): { hour: number; minute: number; ampm: 'AM' | 'PM' } {
+  if (!value) return { hour: 9, minute: 0, ampm: 'AM' };
+  const [hStr, mStr] = value.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return { hour: h, minute: m, ampm };
 }
 
-export function TimePicker({
-  label,
-  name = '',
-  value = '',
-  onChange,
-  required,
-  disabled,
-  error,
-  hint,
-  minTime = DEFAULT_MIN,
-  maxTime = DEFAULT_MAX,
-  showQuickButtons = true,
-  intervals = DEFAULT_INTERVALS,
-  className = '',
-}: TimePickerProps) {
-  const [localValue, setLocalValue] = useState(value);
-  const [validationError, setValidationError] = useState('');
+export function addOneHour(value: string): string {
+  if (!value) return '';
+  const [hStr, mStr] = value.split(':');
+  const h = (parseInt(hStr, 10) + 1) % 24;
+  return `${String(h).padStart(2, '0')}:${mStr}`;
+}
 
-  useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
-  const validateTime = (time: string): string => {
-    if (!time) return '';
+export function TimePicker({ label, value, onChange, disabled, required, hasConflict }: TimePickerProps) {
+  const { hour, minute, ampm } = from24(value);
 
-    const mins = toMinutes(time);
-    const minMins = toMinutes(minTime);
-    const maxMins = toMinutes(maxTime);
+  const update = (h: number, m: number, ap: 'AM' | 'PM') => onChange(to24(h, m, ap));
 
-    if (mins < minMins || mins > maxMins) {
-      return `Horario permitido: ${minTime} - ${maxTime}`;
-    }
+  const borderColor = hasConflict
+    ? 'var(--color-border-warning, #f59e0b)'
+    : 'var(--color-border-secondary, #d1ccc8)';
 
-    return '';
+  const sel: React.CSSProperties = {
+    appearance: 'none',
+    border: `0.5px solid ${borderColor}`,
+    borderRadius: 8,
+    background: 'var(--color-background-primary, #fff)',
+    color: 'var(--color-text-primary, #1a1a1a)',
+    fontSize: 14,
+    fontWeight: 500,
+    padding: '0 28px 0 10px',
+    height: 36,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    outline: 'none',
+    opacity: disabled ? 0.6 : 1,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 8px center',
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-
-    const validationMsg = validateTime(newValue);
-    setValidationError(validationMsg);
-
-    // Solo emitir cambio si es válido
-    if (!validationMsg && onChange) {
-      onChange({ ...e, target: { ...e.target, name, value: newValue } });
-    }
-  };
-
-  const addMinutes = (minutes: number) => {
-    if (!localValue || disabled) return;
-
-    const current = toMinutes(localValue);
-    let newMinutes = current + minutes;
-
-    // Limitar al rango permitido
-    const minMins = toMinutes(minTime);
-    const maxMins = toMinutes(maxTime);
-    newMinutes = Math.min(Math.max(newMinutes, minMins), maxMins);
-
-    const newValue = toTimeString(newMinutes);
-    setLocalValue(newValue);
-    setValidationError('');
-
-    if (onChange) {
-      const syntheticEvent = {
-        target: { name, value: newValue },
-      } as React.ChangeEvent<HTMLInputElement>;
-      onChange(syntheticEvent);
-    }
-  };
-
-  const errorMsg = error || validationError;
-  const hasError = Boolean(errorMsg);
+  const readable = value
+    ? `${from24(value).hour}:${String(from24(value).minute).padStart(2, '0')} ${from24(value).ampm}`
+    : '';
 
   return (
-    <div className={cn('w-full', className)}>
-      {label && (
-        <Label className="mb-2">
-          {label}
-          {required && (
-            <span className="ml-1 text-red-500" aria-hidden>
-              *
-            </span>
-          )}
-        </Label>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+        {label}
+        {required && <span style={{ color: 'var(--color-text-danger)', marginLeft: 2 }}>*</span>}
+      </label>
 
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
-          <input
-            type="time"
-            name={name}
-            value={localValue}
-            onChange={handleChange}
-            min={minTime}
-            max={maxTime}
-            required={required}
-            disabled={disabled}
-            className={cn(
-              'flex w-full rounded-xl border bg-white px-4 py-3 text-sm transition-all duration-150 outline-none',
-              hasError
-                ? 'border-red-300 bg-red-50/40 focus:border-red-400 focus:ring-2 focus:ring-red-100'
-                : 'hover:border-morena/50 focus:border-morena focus:ring-piel/20 border-[#D7C5B9] focus:ring-2',
-              disabled && 'cursor-not-allowed border-[#D7C5B9] bg-[#F5F0EB] opacity-60',
-            )}
-            aria-invalid={hasError}
-            aria-describedby={hasError ? `${name}-error` : hint ? `${name}-hint` : undefined}
-          />
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        
 
-        {showQuickButtons && localValue && !disabled && (
-          <div className="flex gap-1">
-            {intervals.map((interval) => (
-              <button
-                key={interval}
-                type="button"
-                onClick={() => addMinutes(interval)}
-                className={cn(
-                  'hover:bg-morena/10 flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-[#D7C5B9] bg-white px-2 text-xs font-medium transition-all active:scale-95',
-                  'text-morena hover:border-morena',
-                )}
-                title={`Agregar ${interval} minutos`}
-              >
-                +{interval}m
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Horas */}
+        <select
+          value={hour}
+          disabled={disabled}
+          onChange={(e) => update(Number(e.target.value), minute, ampm)}
+          style={{ ...sel, width: 70 }}
+          required={required}
+          aria-label={`${label} hora`}
+        >
+          {HOURS.map((h) => (
+            <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+          ))}
+        </select>
+
+        <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600, fontSize: 16 }}>:</span>
+
+        {/* Minutos */}
+        <select
+          value={minute}
+          disabled={disabled}
+          onChange={(e) => update(hour, Number(e.target.value), ampm)}
+          style={{ ...sel, width: 64 }}
+          aria-label={`${label} minutos`}
+        >
+          {MINUTES.map((m) => (
+            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+          ))}
+        </select>
+
+        {/* AM / PM */}
+        <select
+          value={ampm}
+          disabled={disabled}
+          onChange={(e) => update(hour, minute, e.target.value as 'AM' | 'PM')}
+          style={{ ...sel, width: 72 }}
+          aria-label={`${label} AM o PM`}
+        >
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
       </div>
 
-      {hasError && (
-        <p role="alert" id={`${name}-error`} className="mt-2 flex items-center gap-1.5 text-xs text-red-600">
-          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
-            />
-          </svg>
-          {errorMsg}
-        </p>
-      )}
-
-      {!hasError && hint && (
-        <p id={`${name}-hint`} className="text-marengo mt-2 text-xs">
-          {hint}
-        </p>
+      {readable && (
+        <span style={{ fontSize: 12, color: hasConflict ? 'var(--color-text-warning)' : 'var(--color-text-tertiary)' }}>
+          Hora actual: {readable}
+        </span>
       )}
     </div>
   );
